@@ -9,7 +9,8 @@ import plotly.express as px
 from datetime import datetime, timedelta, date
 import json
 from typing import List, Dict
-import base64
+import pandas as pd
+import os
 
 # Page configuration
 st.set_page_config(
@@ -63,15 +64,6 @@ WATER_SIZES = [
     {'amount': 500, 'label': 'Bottle', 'icon': '🍶'},
     {'amount': 750, 'label': 'Large Bottle', 'icon': '🚰'}
 ]
-
-MASCOT_EXPRESSIONS = {
-    'neutral': '😐',
-    'smile': '😊',
-    'cheer': '🎉',
-    'excited': '😄',
-    'sleepy': '😴',
-    'wave': '👋'
-}
 
 # ============================================================================
 # STATE INITIALIZATION
@@ -136,24 +128,34 @@ def init_session_state():
     if 'weekly_data' not in st.session_state:
         st.session_state.weekly_data = generate_weekly_data()
     
-    # Leaderboard data (mock family/group data)
+    # Load leaderboard from CSV if available
     if 'leaderboard_users' not in st.session_state:
-        st.session_state.leaderboard_users = [
-            {'name': st.session_state.name or 'You', 'intake': st.session_state.current_intake, 'streak': st.session_state.streak},
-            {'name': 'Family Member 1', 'intake': 1800, 'streak': 5},
-            {'name': 'Family Member 2', 'intake': 2200, 'streak': 8},
-            {'name': 'Family Member 3', 'intake': 1500, 'streak': 3}
-        ]
+        st.session_state.leaderboard_users = load_leaderboard_data()
     
     # Celebration state
     if 'show_celebration' not in st.session_state:
         st.session_state.show_celebration = False
-    if 'celebration_message' not in st.session_state:
-        st.session_state.celebration_message = ''
     
     # Reminder state
     if 'last_reminder_time' not in st.session_state:
         st.session_state.last_reminder_time = datetime.now()
+
+def load_leaderboard_data():
+    """Load leaderboard data from CSV if exists"""
+    try:
+        if os.path.exists('data/leaderboard.csv'):
+            df = pd.read_csv('data/leaderboard.csv')
+            return df.to_dict('records')
+    except:
+        pass
+    
+    # Default mock data
+    return [
+        {'name': st.session_state.get('name', 'You'), 'intake': 0, 'streak': 0},
+        {'name': 'Family Member 1', 'intake': 1800, 'streak': 5},
+        {'name': 'Family Member 2', 'intake': 2200, 'streak': 8},
+        {'name': 'Family Member 3', 'intake': 1500, 'streak': 3}
+    ]
 
 def generate_weekly_data():
     """Generate sample weekly data"""
@@ -163,11 +165,11 @@ def generate_weekly_data():
         if i < 6:
             intake = 1700 + (i * 100)
         else:
-            intake = st.session_state.current_intake if 'current_intake' in st.session_state else 0
+            intake = st.session_state.get('current_intake', 0)
         data.append({
             'day': day,
             'intake': intake,
-            'goal': st.session_state.daily_goal if 'daily_goal' in st.session_state else 2000
+            'goal': st.session_state.get('daily_goal', 2000)
         })
     return data
 
@@ -203,40 +205,25 @@ def get_age_specific_message(message_type: str) -> str:
     age_group = st.session_state.get('age_group', 'adult')
     return messages[age_group].get(message_type, '')
 
-def get_mascot_expression() -> str:
-    """Get mascot expression based on progress"""
-    progress = (st.session_state.current_intake / st.session_state.daily_goal) * 100
-    
-    if progress >= 100:
-        return MASCOT_EXPRESSIONS['cheer']
-    elif progress >= 75:
-        return MASCOT_EXPRESSIONS['excited']
-    elif progress >= 50:
-        return MASCOT_EXPRESSIONS['smile']
-    elif progress < 25 and datetime.now().hour > 18:
-        return MASCOT_EXPRESSIONS['sleepy']
-    else:
-        return MASCOT_EXPRESSIONS['neutral']
-
 def create_mascot_svg(expression: str = 'smile', size: str = 'medium'):
-    """Create animated SVG mascot"""
+    """Create animated SVG mascot with smoother animations"""
     
     age_colors = AGE_THEME_COLORS[st.session_state.age_group]
     
     # Size mapping
     sizes = {
-        'small': '80px',
-        'medium': '120px',
-        'large': '180px'
+        'small': '100px',
+        'medium': '150px',
+        'large': '200px'
     }
-    svg_size = sizes.get(size, '120px')
+    svg_size = sizes.get(size, '150px')
     
     # Eye expressions
     eyes = {
         'neutral': '<circle cx="45" cy="45" r="3" fill="#123743"/><circle cx="65" cy="45" r="3" fill="#123743"/>',
-        'smile': '<circle cx="45" cy="45" r="4" fill="#123743"/><circle cx="65" cy="45" r="4" fill="#123743"/><path d="M40 55 Q55 65 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
-        'cheer': '<circle cx="45" cy="45" r="4" fill="#123743"/><circle cx="65" cy="45" r="4" fill="#123743"/><path d="M40 55 Q55 68 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
-        'excited': '<circle cx="45" cy="45" r="4" fill="#123743"/><circle cx="65" cy="45" r="4" fill="#123743"/><path d="M40 55 Q55 65 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
+        'smile': '<circle cx="45" cy="43" r="4" fill="#123743"/><circle cx="65" cy="43" r="4" fill="#123743"/><path d="M40 55 Q55 65 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
+        'cheer': '<circle cx="45" cy="42" r="5" fill="#123743"/><circle cx="65" cy="42" r="5" fill="#123743"/><path d="M38 55 Q55 70 72 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="42" cy="40" r="1.5" fill="white"/><circle cx="62" cy="40" r="1.5" fill="white"/>',
+        'excited': '<circle cx="45" cy="43" r="5" fill="#123743"/><circle cx="65" cy="43" r="5" fill="#123743"/><path d="M40 55 Q55 68 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="43" cy="41" r="1.5" fill="white"/><circle cx="63" cy="41" r="1.5" fill="white"/>',
         'sleepy': '<path d="M40 45 L50 45" stroke="#123743" stroke-width="3" stroke-linecap="round"/><path d="M60 45 L70 45" stroke="#123743" stroke-width="3" stroke-linecap="round"/>',
         'wave': '<circle cx="45" cy="45" r="3" fill="#123743"/><circle cx="65" cy="45" r="3" fill="#123743"/><circle cx="55" cy="55" r="2" fill="' + age_colors['accent'] + '"/>'
     }
@@ -244,35 +231,125 @@ def create_mascot_svg(expression: str = 'smile', size: str = 'medium'):
     eye_svg = eyes.get(expression, eyes['neutral'])
     
     svg = f"""
-    <svg viewBox="0 0 110 140" style="width: {svg_size}; height: {svg_size}; display: inline-block;">
-        <defs>
-            <linearGradient id="mascotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:1" />
-                <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.8" />
-            </linearGradient>
-        </defs>
-        
-        <!-- Main water droplet body -->
-        <path d="M55 25 C35 45, 25 65, 25 85 C25 100, 38 115, 55 115 C72 115, 85 100, 85 85 C85 65, 75 45, 55 25 Z"
-              fill="url(#mascotGradient)" stroke="{age_colors['primary']}" stroke-width="2">
-            <animateTransform attributeName="transform" type="translate" 
-                              values="0,0; 0,-5; 0,0" dur="2s" repeatCount="indefinite"/>
-        </path>
-        
-        <!-- Highlight -->
-        <ellipse cx="48" cy="55" rx="8" ry="12" fill="#FFFFFF" opacity="0.3"/>
-        
-        <!-- Face -->
-        {eye_svg}
-        
-        {"" if expression != 'wave' else f'''
-        <!-- Arms for wave -->
-        <circle cx="25" cy="75" r="6" fill="{age_colors['primary']}" stroke="{age_colors['primary']}" stroke-width="2">
-            <animateTransform attributeName="transform" type="rotate" 
-                              values="0 25 75; 25 25 75; -25 25 75; 0 25 75" dur="1s" repeatCount="indefinite"/>
-        </circle>
-        '''}
-    </svg>
+    <div style="text-align: center; margin: 1rem auto;">
+        <svg viewBox="0 0 110 140" style="width: {svg_size}; height: {svg_size}; display: inline-block;">
+            <defs>
+                <linearGradient id="mascotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.85" />
+                </linearGradient>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            
+            <!-- Main water droplet body -->
+            <path d="M55 25 C35 45, 25 65, 25 85 C25 100, 38 115, 55 115 C72 115, 85 100, 85 85 C85 65, 75 45, 55 25 Z"
+                  fill="url(#mascotGradient)" stroke="{age_colors['primary']}" stroke-width="2.5" filter="url(#glow)">
+                <animateTransform attributeName="transform" type="translate" 
+                                  values="0,0; 0,-8; 0,0" dur="3s" repeatCount="indefinite"/>
+            </path>
+            
+            <!-- Highlight -->
+            <ellipse cx="45" cy="50" rx="10" ry="15" fill="#FFFFFF" opacity="0.4">
+                <animate attributeName="opacity" values="0.4;0.6;0.4" dur="2s" repeatCount="indefinite"/>
+            </ellipse>
+            
+            <!-- Face -->
+            {eye_svg}
+            
+            {f'''
+            <!-- Sparkles for celebration -->
+            <circle cx="20" cy="40" r="2" fill="{age_colors['accent']}" opacity="0.8">
+                <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="90" cy="50" r="2" fill="{age_colors['accent']}" opacity="0.8">
+                <animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="15" cy="70" r="2" fill="{age_colors['secondary']}" opacity="0.8">
+                <animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="1s" repeatCount="indefinite"/>
+            </circle>
+            ''' if expression == 'cheer' else ''}
+        </svg>
+    </div>
+    """
+    
+    return svg
+
+def create_bottle_visualization(percentage: float):
+    """Create an animated bottle fill visualization with smoother wave effect"""
+    
+    age_colors = AGE_THEME_COLORS[st.session_state.age_group]
+    fill_height = max(0, min(100, percentage))
+    
+    # Calculate fill position
+    fill_y = 135 - (fill_height * 1.1)
+    
+    # Create SVG with enhanced animations
+    svg = f"""
+    <div style="text-align: center; margin: 1rem auto;">
+        <svg viewBox="0 0 100 150" style="width: 140px; height: 210px;">
+            <defs>
+                <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:0.7" />
+                    <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.95" />
+                </linearGradient>
+                <filter id="bottleGlow">
+                    <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            
+            <!-- Bottle outline -->
+            <path d="M30 20 L30 15 C30 10 35 5 40 5 L60 5 C65 5 70 10 70 15 L70 20 L75 25 L75 135 C75 140 70 145 65 145 L35 145 C30 145 25 140 25 135 L25 25 Z"
+                  fill="rgba(255,255,255,0.95)" stroke="{age_colors['primary']}" stroke-width="2.5"/>
+            
+            <!-- Bottle cap -->
+            <rect x="35" y="5" width="30" height="10" rx="5" fill="{age_colors['secondary']}">
+                <animate attributeName="fill" values="{age_colors['secondary']};{age_colors['primary']};{age_colors['secondary']}" dur="4s" repeatCount="indefinite"/>
+            </rect>
+            
+            <!-- Water fill with wave animation -->
+            {f'''
+            <clipPath id="bottleClip">
+                <path d="M25 25 L75 25 L75 135 C75 140 70 145 65 145 L35 145 C30 145 25 140 25 135 Z"/>
+            </clipPath>
+            
+            <g clip-path="url(#bottleClip)">
+                <path d="M25 {fill_y} Q32 {fill_y - 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y + 3} 75 {fill_y} L75 145 L25 145 Z"
+                      fill="url(#waterGradient)" filter="url(#bottleGlow)">
+                    <animate attributeName="d" 
+                             values="M25 {fill_y} Q32 {fill_y - 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y + 3} 75 {fill_y} L75 145 L25 145 Z;
+                                     M25 {fill_y} Q32 {fill_y + 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y - 3} 75 {fill_y} L75 145 L25 145 Z;
+                                     M25 {fill_y} Q32 {fill_y - 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y + 3} 75 {fill_y} L75 145 L25 145 Z"
+                             dur="3s" repeatCount="indefinite"/>
+                </path>
+                
+                <!-- Bubbles -->
+                <circle cx="45" cy="{fill_y + 20}" r="2" fill="white" opacity="0.5">
+                    <animate attributeName="cy" values="{fill_y + 20};{fill_y - 10}" dur="3s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="55" cy="{fill_y + 30}" r="2.5" fill="white" opacity="0.5">
+                    <animate attributeName="cy" values="{fill_y + 30};{fill_y - 15}" dur="4s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="4s" repeatCount="indefinite"/>
+                </circle>
+            </g>
+            ''' if fill_height > 0 else ''}
+            
+            <!-- Percentage text -->
+            <text x="50" y="75" font-size="20" font-weight="bold" text-anchor="middle" fill="{age_colors['primary']}">
+                {int(fill_height)}%
+            </text>
+        </svg>
+    </div>
     """
     
     return svg
@@ -294,12 +371,23 @@ def add_water_intake(amount: int):
         'date': date.today()
     })
     
-    # Check for first glass badge
+    # Check for badges
+    check_badges(new_intake, old_intake)
+    
+    # Update weekly data
+    st.session_state.weekly_data = generate_weekly_data()
+    
+    # Update leaderboard
+    update_leaderboard()
+
+def check_badges(new_intake, old_intake):
+    """Check and award badges"""
+    # First glass badge
     if 'first-glass' not in st.session_state.badges and st.session_state.total_glasses == 1:
         st.session_state.badges.append('first-glass')
         st.success(f"🌟 Badge Earned: {BADGES['first-glass']['title']}!")
     
-    # Check for daily goal achievement
+    # Daily goal achievement
     if new_intake >= st.session_state.daily_goal and old_intake < st.session_state.daily_goal:
         if 'daily-goal' not in st.session_state.badges:
             st.session_state.badges.append('daily-goal')
@@ -307,34 +395,32 @@ def add_water_intake(amount: int):
         st.balloons()
         st.success(get_age_specific_message('goal_reached'))
     
-    # Check for hydration hero (100 glasses)
+    # Hydration hero (100 glasses)
     if st.session_state.total_glasses >= 100 and 'hydration-hero' not in st.session_state.badges:
         st.session_state.badges.append('hydration-hero')
         st.success(f"💪 Badge Earned: {BADGES['hydration-hero']['title']}!")
     
-    # Check for early bird (morning drink)
+    # Early bird (morning drink)
     current_hour = datetime.now().hour
     if 5 <= current_hour < 9 and 'early-bird' not in st.session_state.badges:
         st.session_state.badges.append('early-bird')
         st.success(f"🌅 Badge Earned: {BADGES['early-bird']['title']}!")
     
-    # Check for night owl (evening drink)
+    # Night owl (evening drink)
     if 20 <= current_hour < 24 and 'night-owl' not in st.session_state.badges:
         st.session_state.badges.append('night-owl')
         st.success(f"🦉 Badge Earned: {BADGES['night-owl']['title']}!")
     
-    # Check for overachiever
+    # Overachiever
     if new_intake >= st.session_state.daily_goal * 1.5 and 'overachiever' not in st.session_state.badges:
         st.session_state.badges.append('overachiever')
         st.success(f"🚀 Badge Earned: {BADGES['overachiever']['title']}!")
-    
-    # Update weekly data
-    st.session_state.weekly_data = generate_weekly_data()
-    
-    # Update leaderboard
+
+def update_leaderboard():
+    """Update leaderboard with current user's data"""
     if st.session_state.family_mode:
         for user in st.session_state.leaderboard_users:
-            if user['name'] == st.session_state.name or user['name'] == 'You':
+            if user.get('name') == st.session_state.name or user.get('name') == 'You':
                 user['intake'] = st.session_state.current_intake
                 user['streak'] = st.session_state.streak
 
@@ -362,16 +448,6 @@ def check_streak():
         if st.session_state.streak >= 30 and 'month-streak' not in st.session_state.badges:
             st.session_state.badges.append('month-streak')
 
-def get_progress_color(progress: float) -> str:
-    """Get color based on progress percentage"""
-    age_colors = AGE_THEME_COLORS[st.session_state.age_group]
-    if progress >= 100:
-        return age_colors['accent']
-    elif progress >= 75:
-        return age_colors['primary']
-    else:
-        return age_colors['secondary']
-
 # ============================================================================
 # STYLING
 # ============================================================================
@@ -386,7 +462,7 @@ def apply_custom_css():
         'children': '18px',
         'teen': '16px',
         'adult': '16px',
-        'senior': '20px'
+        'senior': '22px'
     }
     
     # Border radius by age group
@@ -404,117 +480,121 @@ def apply_custom_css():
     
     css = f"""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
     /* Base styling */
     .stApp {{
-        background: {'#000000' if high_contrast else COLORS['pale_sand']};
+        background: {'#000000' if high_contrast else 'linear-gradient(135deg, ' + COLORS['pale_sand'] + ' 0%, #E8F4F8 100%)'};
         color: {'#ffffff' if high_contrast else COLORS['dark_slate']};
         font-size: {base_font};
+        font-family: 'Inter', sans-serif;
     }}
     
     /* Headers */
     h1, h2, h3 {{
         color: {age_colors['primary']};
-        font-weight: 600;
+        font-weight: 700;
     }}
     
-    /* Cards */
-    .stCard {{
-        background: {'#111111' if high_contrast else '#ffffff'};
-        border-radius: {radius};
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        border: {'2px solid #ffffff' if high_contrast else f"2px solid {age_colors['primary']}33"};
-    }}
-    
-    /* Buttons */
+    /* Buttons with animations */
     .stButton > button {{
-        background: {age_colors['primary']};
-        color: {'#ffffff' if high_contrast else COLORS['dark_slate']};
+        background: linear-gradient(135deg, {age_colors['primary']} 0%, {age_colors['secondary']} 100%);
+        color: white;
         border-radius: {radius};
         border: none;
-        padding: 0.75rem 1.5rem;
+        padding: 0.85rem 1.75rem;
         font-size: {base_font};
-        font-weight: 500;
-        transition: all 0.3s ease;
+        font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     }}
     
     .stButton > button:hover {{
-        background: {age_colors['secondary']};
-        transform: scale(1.05);
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
     }}
     
-    /* Progress bars */
+    .stButton > button:active {{
+        transform: translateY(-1px) scale(0.98);
+    }}
+    
+    /* Progress bars with gradient */
     .stProgress > div > div > div {{
-        background-color: {age_colors['primary']};
+        background: linear-gradient(90deg, {age_colors['secondary']} 0%, {age_colors['primary']} 50%, {age_colors['accent']} 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+    }}
+    
+    @keyframes shimmer {{
+        0% {{ background-position: 200% 0; }}
+        100% {{ background-position: -200% 0; }}
     }}
     
     /* Metrics */
     [data-testid="stMetricValue"] {{
         color: {age_colors['primary']};
-        font-size: 2rem;
-        font-weight: 700;
+        font-size: 2.2rem;
+        font-weight: 800;
     }}
     
-    /* Sidebar */
+    /* Sidebar with glassmorphism */
     [data-testid="stSidebar"] {{
-        background: {'#111111' if high_contrast else '#ffffff'};
+        background: {'#111111' if high_contrast else 'rgba(255, 255, 255, 0.85)'};
+        backdrop-filter: blur(10px);
         border-right: {'2px solid #ffffff' if high_contrast else f"2px solid {age_colors['primary']}33"};
     }}
     
-    /* Water button grid */
-    .water-button {{
-        background: {'#222222' if high_contrast else '#ffffff'};
-        border: {'2px solid #ffffff' if high_contrast else f"2px solid {age_colors['primary']}33"};
+    /* Stat cards with hover effect */
+    .stat-card {{
+        background: {'#222222' if high_contrast else 'rgba(255, 255, 255, 0.9)'};
         border-radius: {radius};
         padding: 1.5rem;
         text-align: center;
-        cursor: pointer;
+        border: {'2px solid #ffffff' if high_contrast else f"3px solid {age_colors['primary']}22"};
         transition: all 0.3s ease;
-        margin: 0.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     }}
     
-    .water-button:hover {{
-        transform: scale(1.05);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    .stat-card:hover {{
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         border-color: {age_colors['primary']};
     }}
     
-    /* Badge display */
+    /* Badge container with pulse */
     .badge-container {{
         display: inline-block;
-        background: {age_colors['primary']}22;
-        border: 2px solid {age_colors['primary']};
+        background: linear-gradient(135deg, {age_colors['primary']}22 0%, {age_colors['secondary']}22 100%);
+        border: 3px solid {age_colors['primary']};
         border-radius: {radius};
-        padding: 0.5rem 1rem;
-        margin: 0.25rem;
+        padding: 1rem 1.5rem;
+        margin: 0.5rem;
+        transition: all 0.3s ease;
+        animation: pulse 3s ease-in-out infinite;
     }}
     
-    /* Stats card */
-    .stat-card {{
-        background: {'#222222' if high_contrast else age_colors['primary']}22;
-        border-radius: {radius};
-        padding: 1rem;
-        text-align: center;
-        border: {'2px solid #ffffff' if high_contrast else f"2px solid {age_colors['primary']}"};
+    @keyframes pulse {{
+        0%, 100% {{ transform: scale(1); }}
+        50% {{ transform: scale(1.05); }}
     }}
     
-    /* Mascot container */
-    .mascot {{
-        font-size: 4rem;
-        text-align: center;
-        animation: float 3s ease-in-out infinite;
+    .badge-container:hover {{
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 8px 25px {age_colors['primary']}55;
     }}
     
-    @keyframes float {{
-        0%, 100% {{ transform: translateY(0px); }}
-        50% {{ transform: translateY(-10px); }}
-    }}
-    
-    /* Custom input */
+    /* Input styling */
     .stTextInput > div > div > input {{
         border-radius: {radius};
-        border: {'2px solid #ffffff' if high_contrast else f"2px solid {age_colors['primary']}33"};
+        border: {'2px solid #ffffff' if high_contrast else f"2px solid {age_colors['primary']}44"};
         font-size: {base_font};
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+    }}
+    
+    .stTextInput > div > div > input:focus {{
+        border-color: {age_colors['primary']};
+        box-shadow: 0 0 0 3px {age_colors['primary']}33;
     }}
     
     /* Slider */
@@ -522,27 +602,74 @@ def apply_custom_css():
         background: {age_colors['primary']};
     }}
     
-    /* Tabs */
+    /* Tabs with smooth transitions */
     .stTabs [data-baseweb="tab-list"] {{
-        gap: 0.5rem;
+        gap: 0.75rem;
     }}
     
     .stTabs [data-baseweb="tab"] {{
         background: {'#222222' if high_contrast else age_colors['primary']}22;
         border-radius: {radius};
         color: {age_colors['primary']};
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
+        padding: 0.85rem 1.75rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
     }}
     
     .stTabs [aria-selected="true"] {{
-        background: {age_colors['primary']};
-        color: {'#ffffff' if high_contrast else COLORS['dark_slate']};
+        background: linear-gradient(135deg, {age_colors['primary']} 0%, {age_colors['secondary']} 100%);
+        color: white;
+        box-shadow: 0 4px 15px {age_colors['primary']}44;
     }}
     
     /* Hide Streamlit branding */
     #MainMenu {{visibility: hidden;}}
     footer {{visibility: hidden;}}
+    header {{visibility: hidden;}}
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {{
+        width: 10px;
+    }}
+    
+    ::-webkit-scrollbar-track {{
+        background: {COLORS['pale_sand']};
+    }}
+    
+    ::-webkit-scrollbar-thumb {{
+        background: {age_colors['primary']};
+        border-radius: 5px;
+    }}
+    
+    ::-webkit-scrollbar-thumb:hover {{
+        background: {age_colors['secondary']};
+    }}
+    
+    /* Floating animation */
+    @keyframes float {{
+        0%, 100% {{ transform: translateY(0px); }}
+        50% {{ transform: translateY(-15px); }}
+    }}
+    
+    .mascot {{
+        animation: float 4s ease-in-out infinite;
+    }}
+    
+    /* Card entrance animation */
+    @keyframes slideIn {{
+        from {{
+            opacity: 0;
+            transform: translateY(30px);
+        }}
+        to {{
+            opacity: 1;
+            transform: translateY(0);
+        }}
+    }}
+    
+    .metric-card {{
+        animation: slideIn 0.6s ease-out;
+    }}
     
     </style>
     """
@@ -553,55 +680,8 @@ def apply_custom_css():
 # VISUALIZATION COMPONENTS
 # ============================================================================
 
-def create_bottle_visualization(percentage: float):
-    """Create an animated bottle fill visualization with SVG"""
-    
-    age_colors = AGE_THEME_COLORS[st.session_state.age_group]
-    fill_height = max(0, min(100, percentage))
-    
-    # Calculate fill position
-    fill_y = 130 - (fill_height * 1.05)
-    
-    # Create SVG
-    svg = f"""
-    <svg viewBox="0 0 100 140" style="width: 120px; height: 180px;">
-        <defs>
-            <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:0.8" />
-                <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.9" />
-            </linearGradient>
-        </defs>
-        
-        <!-- Bottle outline -->
-        <path d="M30 20 L30 15 C30 10 35 5 40 5 L60 5 C65 5 70 10 70 15 L70 20 L75 25 L75 130 C75 135 70 140 65 140 L35 140 C30 140 25 135 25 130 L25 25 Z"
-              fill="rgba(255,255,255,0.9)" stroke="{age_colors['primary']}" stroke-width="2"/>
-        
-        <!-- Bottle cap -->
-        <rect x="35" y="5" width="30" height="8" rx="4" fill="{age_colors['secondary']}"/>
-        
-        <!-- Water fill -->
-        {"" if fill_height <= 0 else f'''
-        <path d="M25 {fill_y} Q35 {fill_y - 2} 45 {fill_y} T65 {fill_y} Q70 {fill_y + 2} 75 {fill_y} L75 130 C75 135 70 140 65 140 L35 140 C30 140 25 135 25 130 Z"
-              fill="url(#waterGradient)">
-            <animate attributeName="d" 
-                     values="M25 {fill_y} Q35 {fill_y - 2} 45 {fill_y} T65 {fill_y} Q70 {fill_y + 2} 75 {fill_y} L75 130 C75 135 70 140 65 140 L35 140 C30 140 25 135 25 130 Z;
-                             M25 {fill_y} Q35 {fill_y + 2} 45 {fill_y} T65 {fill_y} Q70 {fill_y - 2} 75 {fill_y} L75 130 C75 135 70 140 65 140 L35 140 C30 140 25 135 25 130 Z;
-                             M25 {fill_y} Q35 {fill_y - 2} 45 {fill_y} T65 {fill_y} Q70 {fill_y + 2} 75 {fill_y} L75 130 C75 135 70 140 65 140 L35 140 C30 140 25 135 25 130 Z"
-                     dur="2s" repeatCount="indefinite"/>
-        </path>
-        '''}
-        
-        <!-- Percentage text -->
-        <text x="50" y="80" font-size="18" font-weight="bold" text-anchor="middle" fill="{age_colors['primary']}">
-            {int(fill_height)}%
-        </text>
-    </svg>
-    """
-    
-    return svg
-
 def create_weekly_chart():
-    """Create weekly intake chart"""
+    """Create weekly intake chart with enhanced styling"""
     
     age_colors = AGE_THEME_COLORS[st.session_state.age_group]
     weekly_data = st.session_state.weekly_data
@@ -618,7 +698,8 @@ def create_weekly_chart():
         y=goals,
         mode='lines',
         name='Goal',
-        line=dict(color='#94a3b8', width=2, dash='dash')
+        line=dict(color='#94a3b8', width=3, dash='dash'),
+        hovertemplate='Goal: %{y}ml<extra></extra>'
     ))
     
     # Actual intake bars
@@ -629,19 +710,32 @@ def create_weekly_chart():
         x=days,
         y=intakes,
         name='Intake',
-        marker=dict(color=colors),
+        marker=dict(
+            color=colors,
+            line=dict(color=age_colors['primary'], width=2)
+        ),
         text=[f"{intake}ml" for intake in intakes],
-        textposition='auto'
+        textposition='outside',
+        hovertemplate='%{x}<br>Intake: %{y}ml<extra></extra>'
     ))
     
     fig.update_layout(
-        title="Weekly Hydration Progress",
+        title={
+            'text': "Weekly Hydration Progress",
+            'font': {'size': 24, 'color': age_colors['primary'], 'family': 'Inter'}
+        },
         xaxis_title="Day",
         yaxis_title="Water (ml)",
-        height=400,
+        height=450,
         hovermode='x unified',
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family='Inter', size=14)
     )
+    
+    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(0,0,0,0.05)')
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(0,0,0,0.05)')
     
     return fig
 
@@ -656,31 +750,33 @@ def create_progress_ring(percentage: float):
         mode="gauge+number+delta",
         value=percentage,
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Daily Goal", 'font': {'size': 20}},
+        title={'text': "Daily Goal Progress", 'font': {'size': 24, 'family': 'Inter', 'color': age_colors['primary']}},
         delta={'reference': 100, 'suffix': '%'},
+        number={'suffix': '%', 'font': {'size': 48, 'family': 'Inter'}},
         gauge={
-            'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
-            'bar': {'color': age_colors['primary']},
+            'axis': {'range': [None, 100], 'tickwidth': 2, 'tickcolor': age_colors['primary']},
+            'bar': {'color': age_colors['primary'], 'thickness': 0.75},
             'bgcolor': "white",
-            'borderwidth': 2,
+            'borderwidth': 3,
             'bordercolor': age_colors['secondary'],
             'steps': [
-                {'range': [0, 50], 'color': age_colors['secondary'] + '33'},
+                {'range': [0, 50], 'color': age_colors['secondary'] + '22'},
                 {'range': [50, 75], 'color': age_colors['primary'] + '33'},
-                {'range': [75, 100], 'color': age_colors['accent'] + '33'}
+                {'range': [75, 100], 'color': age_colors['accent'] + '44'}
             ],
             'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
+                'line': {'color': age_colors['accent'], 'width': 5},
+                'thickness': 0.85,
                 'value': 100
             }
         }
     ))
     
     fig.update_layout(
-        height=300,
-        margin=dict(l=20, r=20, t=50, b=20),
-        paper_bgcolor='rgba(0,0,0,0)'
+        height=350,
+        margin=dict(l=20, r=20, t=60, b=20),
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family='Inter')
     )
     
     return fig
@@ -690,33 +786,35 @@ def create_progress_ring(percentage: float):
 # ============================================================================
 
 def splash_screen():
-    """Display splash screen"""
+    """Display splash screen with animation"""
     st.markdown("""
-    <div style='text-align: center; padding: 4rem 2rem;'>
-        <div style='font-size: 8rem; animation: float 3s ease-in-out infinite;'>
+    <div style='text-align: center; padding: 6rem 2rem;'>
+        <div style='font-size: 10rem; animation: float 3s ease-in-out infinite;' class='mascot'>
             💧
         </div>
-        <h1 style='font-size: 4rem; margin-top: 2rem;'>WaterBuddy</h1>
-        <p style='font-size: 1.5rem; opacity: 0.8;'>Your personal hydration companion</p>
-        <p style='margin-top: 2rem; opacity: 0.6;'>🔒 Privacy-first • No account needed<br/>Your data stays on your device</p>
+        <h1 style='font-size: 4.5rem; margin-top: 2rem; background: linear-gradient(135deg, #70D6FF 0%, #1E9BC7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>WaterBuddy</h1>
+        <p style='font-size: 1.8rem; opacity: 0.9; margin-top: 1rem;'>Your personal hydration companion</p>
+        <p style='margin-top: 3rem; opacity: 0.7; font-size: 1.1rem;'>🔒 Privacy-first • No account needed<br/>Your data stays on your device</p>
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button("Get Started →", key="splash_start"):
-        st.session_state.screen = 'onboarding'
-        st.rerun()
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("Get Started →", key="splash_start", use_container_width=True):
+            st.session_state.screen = 'onboarding'
+            st.rerun()
 
 def onboarding_screen():
     """Onboarding flow for new users"""
     
-    st.markdown("<div style='text-align: center; font-size: 4rem;'>💧</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; font-size: 5rem;' class='mascot'>💧</div>", unsafe_allow_html=True)
     st.title("Let's get started!")
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
         # Name input
-        name = st.text_input("What's your name?", value=st.session_state.name, key="onboard_name")
+        name = st.text_input("What's your name?", value=st.session_state.name, key="onboard_name", placeholder="Enter your name...")
         
         # Age group selection
         st.write("### Choose your age group:")
@@ -727,11 +825,13 @@ def onboarding_screen():
                 if st.button(
                     f"{value['icon']} {value['label']}", 
                     key=f"age_{key}",
-                    use_container_width=True
+                    use_container_width=True,
+                    type="primary" if st.session_state.age_group == key else "secondary"
                 ):
                     st.session_state.age_group = key
+                    st.rerun()
         
-        st.write(f"**Selected:** {AGE_GROUPS[st.session_state.age_group]['label']}")
+        st.info(f"**Selected:** {AGE_GROUPS[st.session_state.age_group]['label']}")
         
         # Daily goal
         st.write("### Set your daily goal:")
@@ -743,7 +843,7 @@ def onboarding_screen():
             step=250,
             key="onboard_goal"
         )
-        st.info(f"Your daily goal: **{daily_goal}ml**")
+        st.success(f"Your daily goal: **{daily_goal}ml** ({daily_goal // 250} glasses)")
         
         # Family mode
         family_mode = st.checkbox("Enable Family/Group mode", value=st.session_state.family_mode)
@@ -784,7 +884,7 @@ def dashboard_screen():
             mascot_expression = 'excited'
         
         mascot_svg = create_mascot_svg(mascot_expression, 'large')
-        st.markdown(f"<div style='text-align: center;'>{mascot_svg}</div>", unsafe_allow_html=True)
+        st.markdown(mascot_svg, unsafe_allow_html=True)
     
     st.divider()
     
@@ -799,7 +899,7 @@ def dashboard_screen():
         st.progress(min(progress_pct / 100, 1.0))
         
         st.markdown(f"""
-        <div style='font-size: 1.5rem; font-weight: 600; margin: 1rem 0;'>
+        <div style='font-size: 2rem; font-weight: 700; margin: 1.5rem 0; color: {AGE_THEME_COLORS[st.session_state.age_group]['primary']};'>
             {st.session_state.current_intake}ml / {st.session_state.daily_goal}ml
         </div>
         """, unsafe_allow_html=True)
@@ -847,12 +947,6 @@ def dashboard_screen():
     
     st.divider()
     
-    # Celebration message if goal reached
-    if st.session_state.current_intake >= st.session_state.daily_goal and st.session_state.show_celebration:
-        st.balloons()
-        st.success("🎉 " + get_age_specific_message('goal_reached'))
-        st.session_state.show_celebration = False
-    
     # Quick stats
     st.markdown("### 📊 Quick Stats")
     
@@ -860,29 +954,29 @@ def dashboard_screen():
     
     with col1:
         st.markdown(f"""
-        <div class='stat-card'>
-            <div style='font-size: 2rem;'>🔥</div>
-            <div style='font-size: 1.5rem; font-weight: 700;'>{st.session_state.streak}</div>
-            <div style='opacity: 0.8;'>Day Streak</div>
+        <div class='stat-card metric-card'>
+            <div style='font-size: 3rem;'>🔥</div>
+            <div style='font-size: 2rem; font-weight: 800; margin: 0.5rem 0;'>{st.session_state.streak}</div>
+            <div style='opacity: 0.85; font-size: 1.1rem;'>Day Streak</div>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"""
-        <div class='stat-card'>
-            <div style='font-size: 2rem;'>🏆</div>
-            <div style='font-size: 1.5rem; font-weight: 700;'>{len(st.session_state.badges)}</div>
-            <div style='opacity: 0.8;'>Badges</div>
+        <div class='stat-card metric-card'>
+            <div style='font-size: 3rem;'>🏆</div>
+            <div style='font-size: 2rem; font-weight: 800; margin: 0.5rem 0;'>{len(st.session_state.badges)}</div>
+            <div style='opacity: 0.85; font-size: 1.1rem;'>Badges Earned</div>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         last_time = st.session_state.last_drink.strftime("%H:%M") if st.session_state.last_drink else "--:--"
         st.markdown(f"""
-        <div class='stat-card'>
-            <div style='font-size: 2rem;'>⏰</div>
-            <div style='font-size: 1.5rem; font-weight: 700;'>{last_time}</div>
-            <div style='opacity: 0.8;'>Last Drink</div>
+        <div class='stat-card metric-card'>
+            <div style='font-size: 3rem;'>⏰</div>
+            <div style='font-size: 2rem; font-weight: 800; margin: 0.5rem 0;'>{last_time}</div>
+            <div style='opacity: 0.85; font-size: 1.1rem;'>Last Drink</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -976,9 +1070,9 @@ def profile_screen():
                 badge = BADGES[badge_key]
                 st.markdown(f"""
                 <div class='badge-container'>
-                    <div style='font-size: 3rem;'>{badge['emoji']}</div>
-                    <div style='font-weight: 600;'>{badge['title']}</div>
-                    <div style='font-size: 0.8rem; opacity: 0.8;'>{badge['description']}</div>
+                    <div style='font-size: 3.5rem;'>{badge['emoji']}</div>
+                    <div style='font-weight: 700; font-size: 1.1rem; margin-top: 0.5rem;'>{badge['title']}</div>
+                    <div style='font-size: 0.9rem; opacity: 0.8; margin-top: 0.25rem;'>{badge['description']}</div>
                 </div>
                 """, unsafe_allow_html=True)
     else:
@@ -1008,7 +1102,7 @@ def charts_screen():
     weekly_avg = weekly_total / 6 if len(st.session_state.weekly_data) > 1 else 0
     
     with col1:
-        st.metric("Weekly Total", f"{weekly_total:,}ml")
+        st.metric("Weekly Total", f"{weekly_total:,}ml", delta=f"{st.session_state.current_intake}ml today")
     
     with col2:
         st.metric("Weekly Average", f"{int(weekly_avg)}ml")
@@ -1031,7 +1125,7 @@ def charts_screen():
         )[:10]
         
         for entry in recent_entries:
-            st.markdown(f"🥤 **{entry['amount']}ml** - {entry['timestamp'].strftime('%I:%M %p')}")
+            st.markdown(f"💧 **{entry['amount']}ml** - {entry['timestamp'].strftime('%I:%M %p')}")
     else:
         st.info("No activity recorded yet. Start logging to see your history!")
 
@@ -1164,7 +1258,7 @@ def summary_screen():
     st.title("📋 Today's Summary")
     
     mascot = '🎉' if st.session_state.current_intake >= st.session_state.daily_goal else '😊'
-    st.markdown(f"<div style='text-align: center; font-size: 6rem;'>{mascot}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; font-size: 8rem;' class='mascot'>{mascot}</div>", unsafe_allow_html=True)
     
     if st.session_state.current_intake >= st.session_state.daily_goal:
         st.success("### Fantastic work today!")
@@ -1204,7 +1298,7 @@ def leaderboard_screen():
     st.markdown("### Today's Standings")
     
     # Sort by intake
-    sorted_users = sorted(st.session_state.leaderboard_users, key=lambda x: x['intake'], reverse=True)
+    sorted_users = sorted(st.session_state.leaderboard_users, key=lambda x: x.get('intake', 0), reverse=True)
     
     # Display leaderboard
     for idx, user in enumerate(sorted_users):
@@ -1216,31 +1310,31 @@ def leaderboard_screen():
             st.markdown(f"### {position_emoji}")
         
         with col2:
-            is_current_user = user['name'] == st.session_state.name or user['name'] == 'You'
-            name_display = f"**{user['name']}**" if is_current_user else user['name']
+            is_current_user = user.get('name') == st.session_state.name or user.get('name') == 'You'
+            name_display = f"**{user.get('name', 'Unknown')}**" if is_current_user else user.get('name', 'Unknown')
             st.markdown(f"### {name_display}")
         
         with col3:
-            st.metric("Intake", f"{user['intake']}ml")
+            st.metric("Intake", f"{user.get('intake', 0)}ml")
         
         with col4:
-            st.metric("Streak", f"{user['streak']} days")
+            st.metric("Streak", f"{user.get('streak', 0)} days")
         
         st.divider()
     
     # Streak leaderboard
     st.markdown("### Longest Streaks")
-    sorted_by_streak = sorted(st.session_state.leaderboard_users, key=lambda x: x['streak'], reverse=True)
+    sorted_by_streak = sorted(st.session_state.leaderboard_users, key=lambda x: x.get('streak', 0), reverse=True)
     
-    cols = st.columns(len(sorted_by_streak))
-    for idx, user in enumerate(sorted_by_streak):
+    cols = st.columns(min(len(sorted_by_streak), 4))
+    for idx, user in enumerate(sorted_by_streak[:4]):
         with cols[idx]:
             st.markdown(f"""
             <div class='stat-card'>
-                <div style='font-size: 2rem;'>🔥</div>
-                <div style='font-weight: 600;'>{user['name']}</div>
-                <div style='font-size: 1.5rem; font-weight: 700;'>{user['streak']}</div>
-                <div style='opacity: 0.8;'>days</div>
+                <div style='font-size: 2.5rem;'>🔥</div>
+                <div style='font-weight: 700; margin-top: 0.5rem;'>{user.get('name', 'Unknown')}</div>
+                <div style='font-size: 2rem; font-weight: 800; margin: 0.5rem 0;'>{user.get('streak', 0)}</div>
+                <div style='opacity: 0.85;'>days</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1301,7 +1395,6 @@ def help_screen():
         - See all earned badges
         - Check current and best streak
         - View achievement completion rate
-        - Customize your avatar
         
         ### 📊 Analytics
         - **Weekly progress chart** showing daily intake
@@ -1314,12 +1407,6 @@ def help_screen():
         - See rankings by daily intake
         - View longest streaks
         - Friendly competition with family
-        
-        ### ⏰ Reminders
-        - Set **custom reminder frequency**
-        - View today's reminder schedule
-        - Get motivational quotes
-        - Age-appropriate encouragement
         
         ### 📋 Summary
         - **End-of-day review**
@@ -1349,15 +1436,12 @@ def help_screen():
         A: Absolutely! WaterBuddy works great on mobile browsers. Just bookmark the page for quick access.
         
         **Q: How do I save my progress?**  
-        A: Use the "Export Data" feature in Settings to download your progress as a JSON file. You can import it later.
+        A: Use the "Export Data" feature in Settings to download your progress as a JSON file.
         
         ### Tracking
         
         **Q: What if I forget to log my water?**  
         A: You can add it anytime during the day. Try to log regularly for the most accurate tracking.
-        
-        **Q: Can I edit or delete logged entries?**  
-        A: Currently, entries can't be individually edited. If you make a mistake, you can reset today's data in Settings.
         
         **Q: What happens at midnight?**  
         A: The app automatically resets your daily intake at midnight and updates your streak.
@@ -1371,42 +1455,17 @@ def help_screen():
         A: Yes! Go to Settings → Profile to adjust your goal anytime.
         
         **Q: What's a good daily water goal?**  
-        A: Generally 2000-2500ml for adults, but this varies by age, activity level, and climate. Consult your doctor for personalized advice.
+        A: Generally 2000-2500ml for adults, but this varies by age, activity level, and climate.
         
         ### Badges
         
         **Q: How do I earn badges?**  
         A: Badges are earned automatically by completing specific challenges (first glass, daily goals, streaks, etc.).
         
-        **Q: Can I see all available badges?**  
-        A: Yes! Check your Profile page to see all badges and which ones you've earned.
-        
         ### Family Mode
         
         **Q: How does Family Mode work?**  
         A: Enable it in Settings to view a leaderboard. Each family member should use their own profile or browser session.
-        
-        **Q: Can we share a single device?**  
-        A: Yes, but you'll need to export/import data when switching users, or use different browser profiles.
-        
-        ### Technical
-        
-        **Q: Why did my data disappear?**  
-        A: Data is stored in the browser session. Always export your data before closing the app to preserve it permanently.
-        
-        **Q: The app is slow. What can I do?**  
-        A: Try clearing your browser cache, closing other tabs, or using a different browser.
-        
-        **Q: Can I use this offline?**  
-        A: The app needs to be running on a server (local or online). You need an internet connection for online deployments.
-        
-        ### Deployment
-        
-        **Q: How do I deploy this online?**  
-        A: See our [Deployment Guide](DEPLOYMENT_GUIDE.md) for step-by-step instructions. Streamlit Cloud offers free hosting!
-        
-        **Q: Can I customize the colors?**  
-        A: Yes! Each age group has its own color scheme. You can also modify the config.toml file for custom theming.
         """)
         
         st.divider()
@@ -1441,48 +1500,47 @@ def reminders_screen():
         reminder_times.append(f"{int(current_hour):02d}:{int((current_hour % 1) * 60):02d}")
         current_hour += frequency_hours
     
-    cols = st.columns(min(len(reminder_times), 4))
+    cols = st.columns(min(len(reminder_times), 5))
     for idx, time_str in enumerate(reminder_times):
-        with cols[idx % 4]:
+        with cols[idx % 5]:
             st.markdown(f"""
             <div class='stat-card'>
-                <div style='font-size: 2rem;'>⏰</div>
-                <div style='font-weight: 600;'>{time_str}</div>
+                <div style='font-size: 2.5rem;'>⏰</div>
+                <div style='font-weight: 700; font-size: 1.2rem; margin-top: 0.5rem;'>{time_str}</div>
             </div>
             """, unsafe_allow_html=True)
     
     st.divider()
     
     # Motivational quotes
-    if st.session_state.get('reminderQuotes', True):
-        quotes = {
-            'children': [
-                "Water makes you grow big and strong! 💪",
-                "Drink up, champion! You're doing great! 🌟",
-                "Your body loves water - keep it happy! 😊"
-            ],
-            'teen': [
-                "Stay hydrated, stay focused! 🎯",
-                "Water = Better performance! 💯",
-                "Keep crushing it - one glass at a time! 🔥"
-            ],
-            'adult': [
-                "Hydration boosts productivity and focus. 💼",
-                "Water: Your secret weapon for success. 🎯",
-                "Stay sharp. Stay hydrated. ⚡"
-            ],
-            'senior': [
-                "Gentle reminder: Time for your water break! 🌸",
-                "Stay refreshed and healthy! 🌿",
-                "Your wellness matters - drink up! ✨"
-            ]
-        }
-        
-        import random
-        age_group = st.session_state.age_group
-        quote = random.choice(quotes[age_group])
-        
-        st.info(quote)
+    quotes = {
+        'children': [
+            "Water makes you grow big and strong! 💪",
+            "Drink up, champion! You're doing great! 🌟",
+            "Your body loves water - keep it happy! 😊"
+        ],
+        'teen': [
+            "Stay hydrated, stay focused! 🎯",
+            "Water = Better performance! 💯",
+            "Keep crushing it - one glass at a time! 🔥"
+        ],
+        'adult': [
+            "Hydration boosts productivity and focus. 💼",
+            "Water: Your secret weapon for success. 🎯",
+            "Stay sharp. Stay hydrated. ⚡"
+        ],
+        'senior': [
+            "Gentle reminder: Time for your water break! 🌸",
+            "Stay refreshed and healthy! 🌿",
+            "Your wellness matters - drink up! ✨"
+        ]
+    }
+    
+    import random
+    age_group = st.session_state.age_group
+    quote = random.choice(quotes[age_group])
+    
+    st.info(quote)
 
 # ============================================================================
 # MAIN APP
