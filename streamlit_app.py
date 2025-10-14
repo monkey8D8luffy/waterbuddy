@@ -206,74 +206,60 @@ def get_age_specific_message(message_type: str) -> str:
     return messages[age_group].get(message_type, '')
 
 def create_mascot_svg(expression: str = 'smile', size: str = 'medium'):
-    """Create animated SVG mascot with smoother animations"""
+    """Create animated SVG mascot - optimized for Streamlit"""
     
     age_colors = AGE_THEME_COLORS[st.session_state.age_group]
     
     # Size mapping
     sizes = {
-        'small': '100px',
-        'medium': '150px',
-        'large': '200px'
+        'small': '120px',
+        'medium': '180px',
+        'large': '220px'
     }
-    svg_size = sizes.get(size, '150px')
+    svg_size = sizes.get(size, '180px')
     
     # Eye expressions
     eyes = {
-        'neutral': '<circle cx="45" cy="45" r="3" fill="#123743"/><circle cx="65" cy="45" r="3" fill="#123743"/>',
-        'smile': '<circle cx="45" cy="43" r="4" fill="#123743"/><circle cx="65" cy="43" r="4" fill="#123743"/><path d="M40 55 Q55 65 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
-        'cheer': '<circle cx="45" cy="42" r="5" fill="#123743"/><circle cx="65" cy="42" r="5" fill="#123743"/><path d="M38 55 Q55 70 72 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="42" cy="40" r="1.5" fill="white"/><circle cx="62" cy="40" r="1.5" fill="white"/>',
-        'excited': '<circle cx="45" cy="43" r="5" fill="#123743"/><circle cx="65" cy="43" r="5" fill="#123743"/><path d="M40 55 Q55 68 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="43" cy="41" r="1.5" fill="white"/><circle cx="63" cy="41" r="1.5" fill="white"/>',
-        'sleepy': '<path d="M40 45 L50 45" stroke="#123743" stroke-width="3" stroke-linecap="round"/><path d="M60 45 L70 45" stroke="#123743" stroke-width="3" stroke-linecap="round"/>',
-        'wave': '<circle cx="45" cy="45" r="3" fill="#123743"/><circle cx="65" cy="45" r="3" fill="#123743"/><circle cx="55" cy="55" r="2" fill="' + age_colors['accent'] + '"/>'
+        'neutral': '<circle cx="45" cy="48" r="4" fill="#123743"/><circle cx="65" cy="48" r="4" fill="#123743"/>',
+        'smile': '<circle cx="45" cy="46" r="5" fill="#123743"/><circle cx="65" cy="46" r="5" fill="#123743"/><path d="M40 58 Q55 68 70 58" stroke="#123743" stroke-width="4" fill="none" stroke-linecap="round"/>',
+        'cheer': '<circle cx="45" cy="44" r="6" fill="#123743"/><circle cx="65" cy="44" r="6" fill="#123743"/><path d="M35 58 Q55 75 75 58" stroke="#123743" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="42" cy="41" r="2" fill="white"/><circle cx="62" cy="41" r="2" fill="white"/>',
+        'excited': '<circle cx="45" cy="45" r="6" fill="#123743"/><circle cx="65" cy="45" r="6" fill="#123743"/><path d="M38 58 Q55 72 72 58" stroke="#123743" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="43" cy="42" r="2" fill="white"/><circle cx="63" cy="42" r="2" fill="white"/>',
     }
     
     eye_svg = eyes.get(expression, eyes['neutral'])
     
     svg = f"""
-    <div style="text-align: center; margin: 1rem auto;">
-        <svg viewBox="0 0 110 140" style="width: {svg_size}; height: {svg_size}; display: inline-block;">
+    <div style="text-align: center; padding: 1rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 140" style="width: {svg_size}; height: {svg_size};">
             <defs>
-                <linearGradient id="mascotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient id="mascotGrad_{expression}" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.85" />
+                    <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.9" />
                 </linearGradient>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
             </defs>
             
-            <!-- Main water droplet body -->
-            <path d="M55 25 C35 45, 25 65, 25 85 C25 100, 38 115, 55 115 C72 115, 85 100, 85 85 C85 65, 75 45, 55 25 Z"
-                  fill="url(#mascotGradient)" stroke="{age_colors['primary']}" stroke-width="2.5" filter="url(#glow)">
-                <animateTransform attributeName="transform" type="translate" 
-                                  values="0,0; 0,-8; 0,0" dur="3s" repeatCount="indefinite"/>
+            <!-- Shadow -->
+            <ellipse cx="55" cy="125" rx="25" ry="5" fill="#00000020"/>
+            
+            <!-- Main droplet body -->
+            <path d="M55 20 C35 42, 22 62, 22 82 C22 100, 36 118, 55 118 C74 118, 88 100, 88 82 C88 62, 75 42, 55 20 Z"
+                  fill="url(#mascotGrad_{expression})" 
+                  stroke="{age_colors['primary']}" 
+                  stroke-width="3">
             </path>
             
-            <!-- Highlight -->
-            <ellipse cx="45" cy="50" rx="10" ry="15" fill="#FFFFFF" opacity="0.4">
-                <animate attributeName="opacity" values="0.4;0.6;0.4" dur="2s" repeatCount="indefinite"/>
-            </ellipse>
+            <!-- Highlight shine -->
+            <ellipse cx="42" cy="50" rx="12" ry="18" fill="#FFFFFF" opacity="0.5"/>
+            <ellipse cx="47" cy="55" rx="6" ry="10" fill="#FFFFFF" opacity="0.7"/>
             
             <!-- Face -->
             {eye_svg}
             
-            {f'''
-            <!-- Sparkles for celebration -->
-            <circle cx="20" cy="40" r="2" fill="{age_colors['accent']}" opacity="0.8">
-                <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="90" cy="50" r="2" fill="{age_colors['accent']}" opacity="0.8">
-                <animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="15" cy="70" r="2" fill="{age_colors['secondary']}" opacity="0.8">
-                <animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="1s" repeatCount="indefinite"/>
-            </circle>
-            ''' if expression == 'cheer' else ''}
+            {'<!-- Celebration sparkles -->' if expression == 'cheer' else ''}
+            {f'<circle cx="15" cy="35" r="3" fill="{age_colors["accent"]}" opacity="0.9"/>' if expression == 'cheer' else ''}
+            {f'<circle cx="95" cy="45" r="3" fill="{age_colors["accent"]}" opacity="0.9"/>' if expression == 'cheer' else ''}
+            {f'<circle cx="10" cy="70" r="2.5" fill="{age_colors["secondary"]}" opacity="0.9"/>' if expression == 'cheer' else ''}
+            {f'<circle cx="100" cy="75" r="2.5" fill="{age_colors["primary"]}" opacity="0.9"/>' if expression == 'cheer' else ''}
         </svg>
     </div>
     """
@@ -281,72 +267,72 @@ def create_mascot_svg(expression: str = 'smile', size: str = 'medium'):
     return svg
 
 def create_bottle_visualization(percentage: float):
-    """Create an animated bottle fill visualization with smoother wave effect"""
+    """Create bottle fill visualization - optimized for Streamlit"""
     
     age_colors = AGE_THEME_COLORS[st.session_state.age_group]
     fill_height = max(0, min(100, percentage))
     
-    # Calculate fill position
-    fill_y = 135 - (fill_height * 1.1)
+    # Calculate water level (inverted - higher percentage = higher water)
+    water_level = 130 - (fill_height * 1.05)  # Max height 130, scales with percentage
     
-    # Create SVG with enhanced animations
     svg = f"""
-    <div style="text-align: center; margin: 1rem auto;">
-        <svg viewBox="0 0 100 150" style="width: 140px; height: 210px;">
+    <div style="text-align: center; padding: 1rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" style="width: 160px; height: 240px;">
             <defs>
-                <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:0.7" />
-                    <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.95" />
+                <linearGradient id="waterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:1" />
                 </linearGradient>
-                <filter id="bottleGlow">
-                    <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
+                <clipPath id="bottleShape">
+                    <path d="M28 28 L72 28 L72 135 C72 140 68 145 63 145 L37 145 C32 145 28 140 28 135 Z"/>
+                </clipPath>
             </defs>
             
             <!-- Bottle outline -->
-            <path d="M30 20 L30 15 C30 10 35 5 40 5 L60 5 C65 5 70 10 70 15 L70 20 L75 25 L75 135 C75 140 70 145 65 145 L35 145 C30 145 25 140 25 135 L25 25 Z"
-                  fill="rgba(255,255,255,0.95)" stroke="{age_colors['primary']}" stroke-width="2.5"/>
+            <path d="M32 22 L32 18 C32 12 36 8 42 8 L58 8 C64 8 68 12 68 18 L68 22 L72 28 L72 135 C72 140 68 145 63 145 L37 145 C32 145 28 140 28 135 L28 28 Z"
+                  fill="rgba(255,255,255,0.95)" 
+                  stroke="{age_colors['primary']}" 
+                  stroke-width="3"/>
             
             <!-- Bottle cap -->
-            <rect x="35" y="5" width="30" height="10" rx="5" fill="{age_colors['secondary']}">
-                <animate attributeName="fill" values="{age_colors['secondary']};{age_colors['primary']};{age_colors['secondary']}" dur="4s" repeatCount="indefinite"/>
-            </rect>
+            <rect x="38" y="8" width="24" height="12" rx="6" 
+                  fill="{age_colors['secondary']}" 
+                  stroke="{age_colors['primary']}" 
+                  stroke-width="2"/>
             
-            <!-- Water fill with wave animation -->
-            {f'''
-            <clipPath id="bottleClip">
-                <path d="M25 25 L75 25 L75 135 C75 140 70 145 65 145 L35 145 C30 145 25 140 25 135 Z"/>
-            </clipPath>
-            
-            <g clip-path="url(#bottleClip)">
-                <path d="M25 {fill_y} Q32 {fill_y - 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y + 3} 75 {fill_y} L75 145 L25 145 Z"
-                      fill="url(#waterGradient)" filter="url(#bottleGlow)">
-                    <animate attributeName="d" 
-                             values="M25 {fill_y} Q32 {fill_y - 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y + 3} 75 {fill_y} L75 145 L25 145 Z;
-                                     M25 {fill_y} Q32 {fill_y + 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y - 3} 75 {fill_y} L75 145 L25 145 Z;
-                                     M25 {fill_y} Q32 {fill_y - 3} 40 {fill_y} T55 {fill_y} T70 {fill_y} Q73 {fill_y + 3} 75 {fill_y} L75 145 L25 145 Z"
-                             dur="3s" repeatCount="indefinite"/>
-                </path>
+            <!-- Water fill -->
+            <g clip-path="url(#bottleShape)">
+                {f'''
+                <!-- Water body -->
+                <rect x="28" y="{water_level}" width="44" height="{145 - water_level}" 
+                      fill="url(#waterGrad)"/>
+                
+                <!-- Water surface line -->
+                <line x1="28" y1="{water_level}" x2="72" y2="{water_level}" 
+                      stroke="{age_colors['primary']}" 
+                      stroke-width="2" 
+                      opacity="0.6"/>
                 
                 <!-- Bubbles -->
-                <circle cx="45" cy="{fill_y + 20}" r="2" fill="white" opacity="0.5">
-                    <animate attributeName="cy" values="{fill_y + 20};{fill_y - 10}" dur="3s" repeatCount="indefinite"/>
-                    <animate attributeName="opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite"/>
-                </circle>
-                <circle cx="55" cy="{fill_y + 30}" r="2.5" fill="white" opacity="0.5">
-                    <animate attributeName="cy" values="{fill_y + 30};{fill_y - 15}" dur="4s" repeatCount="indefinite"/>
-                    <animate attributeName="opacity" values="0.5;0;0.5" dur="4s" repeatCount="indefinite"/>
-                </circle>
+                <circle cx="42" cy="{min(water_level + 25, 135)}" r="3" fill="white" opacity="0.6"/>
+                <circle cx="58" cy="{min(water_level + 40, 135)}" r="2.5" fill="white" opacity="0.5"/>
+                <circle cx="48" cy="{min(water_level + 15, 135)}" r="2" fill="white" opacity="0.7"/>
+                ''' if fill_height > 5 else ''}
             </g>
-            ''' if fill_height > 0 else ''}
             
-            <!-- Percentage text -->
-            <text x="50" y="75" font-size="20" font-weight="bold" text-anchor="middle" fill="{age_colors['primary']}">
+            <!-- Measurement lines -->
+            <line x1="20" y1="50" x2="25" y2="50" stroke="#999" stroke-width="1"/>
+            <line x1="20" y1="85" x2="25" y2="85" stroke="#999" stroke-width="1"/>
+            <line x1="20" y1="120" x2="25" y2="120" stroke="#999" stroke-width="1"/>
+            
+            <!-- Percentage display -->
+            <text x="50" y="80" font-size="24" font-weight="bold" text-anchor="middle" fill="{age_colors['primary']}">
                 {int(fill_height)}%
+            </text>
+            
+            <!-- Labels -->
+            <text x="50" y="157" font-size="10" text-anchor="middle" fill="#666">
+                {st.session_state.current_intake}ml / {st.session_state.daily_goal}ml
             </text>
         </svg>
     </div>
@@ -480,7 +466,7 @@ def apply_custom_css():
     
     css = f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     
     /* Base styling */
     .stApp {{
@@ -496,7 +482,7 @@ def apply_custom_css():
         font-weight: 700;
     }}
     
-    /* Buttons with animations */
+    /* Buttons */
     .stButton > button {{
         background: linear-gradient(135deg, {age_colors['primary']} 0%, {age_colors['secondary']} 100%);
         color: white;
@@ -505,29 +491,18 @@ def apply_custom_css():
         padding: 0.85rem 1.75rem;
         font-size: {base_font};
         font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }}
     
     .stButton > button:hover {{
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     }}
     
-    .stButton > button:active {{
-        transform: translateY(-1px) scale(0.98);
-    }}
-    
-    /* Progress bars with gradient */
+    /* Progress bars */
     .stProgress > div > div > div {{
-        background: linear-gradient(90deg, {age_colors['secondary']} 0%, {age_colors['primary']} 50%, {age_colors['accent']} 100%);
-        background-size: 200% 100%;
-        animation: shimmer 2s linear infinite;
-    }}
-    
-    @keyframes shimmer {{
-        0% {{ background-position: 200% 0; }}
-        100% {{ background-position: -200% 0; }}
+        background: linear-gradient(90deg, {age_colors['secondary']} 0%, {age_colors['primary']} 100%);
     }}
     
     /* Metrics */
@@ -561,7 +536,7 @@ def apply_custom_css():
         border-color: {age_colors['primary']};
     }}
     
-    /* Badge container with pulse */
+    /* Badge container */
     .badge-container {{
         display: inline-block;
         background: linear-gradient(135deg, {age_colors['primary']}22 0%, {age_colors['secondary']}22 100%);
@@ -569,18 +544,12 @@ def apply_custom_css():
         border-radius: {radius};
         padding: 1rem 1.5rem;
         margin: 0.5rem;
-        transition: all 0.3s ease;
-        animation: pulse 3s ease-in-out infinite;
-    }}
-    
-    @keyframes pulse {{
-        0%, 100% {{ transform: scale(1); }}
-        50% {{ transform: scale(1.05); }}
+        transition: all 0.2s ease;
     }}
     
     .badge-container:hover {{
-        transform: scale(1.1) rotate(5deg);
-        box-shadow: 0 8px 25px {age_colors['primary']}55;
+        transform: scale(1.08);
+        box-shadow: 0 6px 20px {age_colors['primary']}55;
     }}
     
     /* Input styling */
@@ -645,30 +614,14 @@ def apply_custom_css():
         background: {age_colors['secondary']};
     }}
     
-    /* Floating animation */
-    @keyframes float {{
-        0%, 100% {{ transform: translateY(0px); }}
-        50% {{ transform: translateY(-15px); }}
-    }}
-    
+    /* Mascot class */
     .mascot {{
-        animation: float 4s ease-in-out infinite;
+        display: inline-block;
     }}
     
-    /* Card entrance animation */
-    @keyframes slideIn {{
-        from {{
-            opacity: 0;
-            transform: translateY(30px);
-        }}
-        to {{
-            opacity: 1;
-            transform: translateY(0);
-        }}
-    }}
-    
+    /* Metric card */
     .metric-card {{
-        animation: slideIn 0.6s ease-out;
+        opacity: 1;
     }}
     
     </style>
@@ -786,15 +739,15 @@ def create_progress_ring(percentage: float):
 # ============================================================================
 
 def splash_screen():
-    """Display splash screen with animation"""
+    """Display splash screen"""
     st.markdown("""
-    <div style='text-align: center; padding: 6rem 2rem;'>
-        <div style='font-size: 10rem; animation: float 3s ease-in-out infinite;' class='mascot'>
+    <div style='text-align: center; padding: 4rem 2rem;'>
+        <div style='font-size: 8rem;'>
             💧
         </div>
-        <h1 style='font-size: 4.5rem; margin-top: 2rem; background: linear-gradient(135deg, #70D6FF 0%, #1E9BC7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>WaterBuddy</h1>
-        <p style='font-size: 1.8rem; opacity: 0.9; margin-top: 1rem;'>Your personal hydration companion</p>
-        <p style='margin-top: 3rem; opacity: 0.7; font-size: 1.1rem;'>🔒 Privacy-first • No account needed<br/>Your data stays on your device</p>
+        <h1 style='font-size: 3.5rem; margin-top: 2rem; color: #70D6FF;'>WaterBuddy</h1>
+        <p style='font-size: 1.5rem; opacity: 0.9; margin-top: 1rem;'>Your personal hydration companion</p>
+        <p style='margin-top: 2rem; opacity: 0.7; font-size: 1rem;'>🔒 Privacy-first • No account needed<br/>Your data stays on your device</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1017,73 +970,165 @@ def dashboard_screen():
     st.info(tip_of_day)
 
 def profile_screen():
-    """User profile and statistics"""
+    """Enhanced user profile with useful statistics and insights"""
     
     st.title(f"👤 {st.session_state.name}'s Profile")
     
-    # Avatar/Mascot display
-    col_avatar, col_info = st.columns([1, 3])
+    # Profile header with avatar and quick stats
+    col_avatar, col_info, col_level = st.columns([1, 2, 1])
     
     with col_avatar:
         mascot_svg = create_mascot_svg('smile', 'large')
         st.markdown(mascot_svg, unsafe_allow_html=True)
-        st.caption(f"Level {min(len(st.session_state.badges), 10)}")
     
     with col_info:
-        st.markdown("### 📋 Basic Info")
-        st.write(f"**Name:** {st.session_state.name}")
-        st.write(f"**Age Group:** {AGE_GROUPS[st.session_state.age_group]['label']}")
-        st.write(f"**Daily Goal:** {st.session_state.daily_goal}ml")
-        st.write(f"**Member Since:** {st.session_state.join_date.strftime('%B %d, %Y')}")
-        days_active = (datetime.now() - st.session_state.join_date).days
-        st.write(f"**Days Active:** {days_active} days")
+        st.markdown(f"### {st.session_state.name}")
+        st.write(f"🎯 {AGE_GROUPS[st.session_state.age_group]['label']}")
+        st.write(f"💧 Daily Goal: {st.session_state.daily_goal}ml")
+        days_active = max((datetime.now() - st.session_state.join_date).days, 1)
+        st.write(f"📅 Active for {days_active} days")
+    
+    with col_level:
+        level = min(len(st.session_state.badges) + (st.session_state.streak // 5), 20)
+        st.markdown(f"""
+        <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, {AGE_THEME_COLORS[st.session_state.age_group]['primary']} 0%, {AGE_THEME_COLORS[st.session_state.age_group]['secondary']} 100%); border-radius: 1rem; color: white;'>
+            <div style='font-size: 2.5rem; font-weight: 800;'>{level}</div>
+            <div style='font-size: 0.9rem; opacity: 0.9;'>Level</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.divider()
     
-    col1, col2, col3 = st.columns(3)
+    # Key metrics in cards
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("### 📈 Lifetime Stats")
-        st.metric("Total Water Consumed", f"{st.session_state.total_intake:,}ml")
-        st.metric("Total Glasses Logged", st.session_state.total_glasses)
+        st.metric("Total Water", f"{st.session_state.total_intake:,}ml", 
+                  delta=f"+{st.session_state.current_intake}ml today")
     
     with col2:
-        st.markdown("### 🔥 Streak Stats")
-        st.metric("Current Streak", f"{st.session_state.streak} days")
-        st.metric("Best Streak", f"{st.session_state.best_streak} days")
+        st.metric("Total Glasses", st.session_state.total_glasses,
+                  delta=f"+{len([e for e in st.session_state.intake_history if e['date'] == date.today()])} today")
     
     with col3:
-        st.markdown("### 🏆 Achievement Stats")
-        st.metric("Badges Earned", len(st.session_state.badges))
-        completion_rate = (len(st.session_state.badges) / len(BADGES)) * 100
-        st.metric("Completion", f"{int(completion_rate)}%")
+        st.metric("Current Streak", f"{st.session_state.streak} days",
+                  delta=f"Best: {st.session_state.best_streak}")
+    
+    with col4:
+        completion = (len(st.session_state.badges) / len(BADGES)) * 100
+        st.metric("Achievements", f"{len(st.session_state.badges)}/{len(BADGES)}",
+                  delta=f"{int(completion)}%")
     
     st.divider()
     
-    # Badges
+    # Insights section
+    st.markdown("### 💡 Your Hydration Insights")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Calculate average daily intake
+        if st.session_state.intake_history:
+            avg_daily = st.session_state.total_intake / max(days_active, 1)
+            st.metric("Average Daily Intake", f"{int(avg_daily)}ml")
+            
+            # Calculate success rate
+            if days_active > 0:
+                success_rate = (st.session_state.streak / days_active) * 100
+                st.metric("Goal Success Rate", f"{int(success_rate)}%")
+        else:
+            st.info("Start logging water to see your insights!")
+    
+    with col2:
+        # Most active time
+        if st.session_state.intake_history:
+            hours = [entry['timestamp'].hour for entry in st.session_state.intake_history]
+            if hours:
+                most_active_hour = max(set(hours), key=hours.count)
+                st.metric("Most Active Hour", f"{most_active_hour:02d}:00")
+            
+            # Weekly average
+            weekly_avg = (st.session_state.total_intake / max(days_active, 1)) * 7
+            st.metric("Weekly Average", f"{int(weekly_avg):,}ml")
+    
+    st.divider()
+    
+    # Badges section
     st.markdown("### 🏆 Badges & Achievements")
     
-    if st.session_state.badges:
-        badge_cols = st.columns(min(len(st.session_state.badges), 4))
-        for idx, badge_key in enumerate(st.session_state.badges):
-            with badge_cols[idx % 4]:
-                badge = BADGES[badge_key]
+    tab1, tab2 = st.tabs(["Earned Badges", "All Badges"])
+    
+    with tab1:
+        if st.session_state.badges:
+            badge_cols = st.columns(4)
+            for idx, badge_key in enumerate(st.session_state.badges):
+                with badge_cols[idx % 4]:
+                    badge = BADGES[badge_key]
+                    st.markdown(f"""
+                    <div class='badge-container'>
+                        <div style='font-size: 3rem;'>{badge['emoji']}</div>
+                        <div style='font-weight: 700; margin-top: 0.5rem;'>{badge['title']}</div>
+                        <div style='font-size: 0.85rem; opacity: 0.8;'>{badge['description']}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.info("🌟 Start logging water to earn your first badge!")
+    
+    with tab2:
+        all_badge_cols = st.columns(4)
+        for idx, (badge_key, badge) in enumerate(BADGES.items()):
+            with all_badge_cols[idx % 4]:
+                earned = badge_key in st.session_state.badges
+                opacity = "1" if earned else "0.3"
                 st.markdown(f"""
-                <div class='badge-container'>
-                    <div style='font-size: 3.5rem;'>{badge['emoji']}</div>
-                    <div style='font-weight: 700; font-size: 1.1rem; margin-top: 0.5rem;'>{badge['title']}</div>
-                    <div style='font-size: 0.9rem; opacity: 0.8; margin-top: 0.25rem;'>{badge['description']}</div>
+                <div style='opacity: {opacity}; text-align: center; padding: 1rem; margin: 0.5rem;'>
+                    <div style='font-size: 2.5rem;'>{badge['emoji']}</div>
+                    <div style='font-weight: 600; margin-top: 0.5rem;'>{badge['title']}</div>
+                    <div style='font-size: 0.8rem; opacity: 0.8;'>{badge['description']}</div>
+                    {'<div style="color: green; margin-top: 0.5rem;">✓ Earned</div>' if earned else '<div style="color: gray; margin-top: 0.5rem;">🔒 Locked</div>'}
                 </div>
                 """, unsafe_allow_html=True)
-    else:
-        st.info("Start logging water to earn badges! 🌟")
     
     st.divider()
     
-    # Progress ring
+    # Progress visualization
+    st.markdown("### 📊 Today's Progress")
     progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
-    ring_fig = create_progress_ring(progress_pct)
-    st.plotly_chart(ring_fig, use_container_width=True)
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        ring_fig = create_progress_ring(progress_pct)
+        st.plotly_chart(ring_fig, use_container_width=True)
+    
+    with col2:
+        st.markdown("#### Quick Actions")
+        if st.button("📥 Export My Data", use_container_width=True):
+            data = {
+                'name': st.session_state.name,
+                'age_group': st.session_state.age_group,
+                'daily_goal': st.session_state.daily_goal,
+                'total_intake': st.session_state.total_intake,
+                'total_glasses': st.session_state.total_glasses,
+                'streak': st.session_state.streak,
+                'best_streak': st.session_state.best_streak,
+                'badges': st.session_state.badges,
+                'join_date': st.session_state.join_date.isoformat()
+            }
+            json_str = json.dumps(data, indent=2)
+            st.download_button(
+                "Download JSON",
+                data=json_str,
+                file_name=f"waterbuddy_{st.session_state.name}_{datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json"
+            )
+        
+        if st.button("⚙️ Edit Profile", use_container_width=True):
+            st.session_state.screen = 'settings'
+            st.rerun()
+        
+        if st.button("📈 View Analytics", use_container_width=True):
+            st.session_state.screen = 'charts'
+            st.rerun()
 
 def charts_screen():
     """Analytics and charts"""
@@ -1258,7 +1303,7 @@ def summary_screen():
     st.title("📋 Today's Summary")
     
     mascot = '🎉' if st.session_state.current_intake >= st.session_state.daily_goal else '😊'
-    st.markdown(f"<div style='text-align: center; font-size: 8rem;' class='mascot'>{mascot}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; font-size: 6rem;'>{mascot}</div>", unsafe_allow_html=True)
     
     if st.session_state.current_intake >= st.session_state.daily_goal:
         st.success("### Fantastic work today!")
@@ -1269,14 +1314,20 @@ def summary_screen():
     
     st.divider()
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric("Today's Intake", f"{st.session_state.current_intake}ml")
-        st.metric("Goal Progress", f"{int((st.session_state.current_intake / st.session_state.daily_goal) * 100)}%")
     
     with col2:
-        st.metric("Glasses Logged Today", len([e for e in st.session_state.intake_history if e['date'] == date.today()]))
+        progress_pct = int((st.session_state.current_intake / st.session_state.daily_goal) * 100)
+        st.metric("Goal Progress", f"{progress_pct}%")
+    
+    with col3:
+        today_glasses = len([e for e in st.session_state.intake_history if e['date'] == date.today()])
+        st.metric("Glasses Today", today_glasses)
+    
+    with col4:
         st.metric("Current Streak", f"{st.session_state.streak} days")
     
     st.divider()
