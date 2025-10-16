@@ -213,94 +213,7 @@ def create_water_drop_image():
     """
     return html
 
-def create_bottle_progress_bar(percentage: float):
-    """Create vertical progress bar in bottle shape"""
-    colors = AGE_THEME_COLORS[st.session_state.age_group]
-    fill_pct = max(0, min(100, percentage))
-    
-    html = f"""
-    <div style="text-align: center; padding: 1rem;">
-        <div style="position: relative; width: 80px; height: 250px; margin: 0 auto;">
-            <!-- Bottle Cap -->
-            <div style="
-                width: 40px;
-                height: 15px;
-                background: {colors['secondary']};
-                border: 2px solid {colors['primary']};
-                border-radius: 8px 8px 0 0;
-                margin: 0 auto;
-                position: absolute;
-                left: 20px;
-                top: 0;
-            "></div>
-            
-            <!-- Bottle Neck -->
-            <div style="
-                width: 30px;
-                height: 25px;
-                background: rgba(255,255,255,0.9);
-                border: 3px solid {colors['primary']};
-                margin: 0 auto;
-                position: absolute;
-                left: 25px;
-                top: 15px;
-            "></div>
-            
-            <!-- Bottle Body (Outline) -->
-            <div style="
-                width: 80px;
-                height: 200px;
-                background: rgba(255,255,255,0.9);
-                border: 3px solid {colors['primary']};
-                border-radius: 8px;
-                position: absolute;
-                top: 40px;
-                left: 0;
-                overflow: hidden;
-            ">
-                <!-- Water Fill (from bottom) -->
-                <div style="
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    width: 100%;
-                    height: {fill_pct}%;
-                    background: linear-gradient(180deg, {colors['primary']} 0%, {colors['secondary']} 100%);
-                    transition: height 0.5s ease;
-                "></div>
-                
-                <!-- Percentage Text -->
-                <div style="
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: {colors['primary']};
-                    z-index: 10;
-                ">{int(fill_pct)}%</div>
-                
-                <!-- Measurement Lines -->
-                <div style="position: absolute; left: 0; top: 25%; width: 10px; height: 2px; background: #999;"></div>
-                <div style="position: absolute; left: 0; top: 50%; width: 10px; height: 2px; background: #999;"></div>
-                <div style="position: absolute; left: 0; top: 75%; width: 10px; height: 2px; background: #999;"></div>
-            </div>
-            
-            <!-- Amount Label -->
-            <div style="
-                position: absolute;
-                bottom: -30px;
-                left: 0;
-                width: 100%;
-                text-align: center;
-                font-size: 12px;
-                color: #666;
-            ">{st.session_state.current_intake}/{st.session_state.daily_goal}ml</div>
-        </div>
-    </div>
-    """
-    return html
+
 
 def add_water_intake(amount: int):
     """Add water intake and check for achievements"""
@@ -616,24 +529,17 @@ def dashboard_screen():
     st.divider()
     
     # Progress section
-    col1, col2 = st.columns([2, 1])
+    st.markdown("### 💧 Today's Progress")
+    progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
+    st.progress(min(progress_pct / 100, 1.0))
     
-    with col1:
-        st.markdown("### 💧 Today's Progress")
-        progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
-        st.progress(min(progress_pct / 100, 1.0))
-        
-        st.markdown(f"""
-        <h2 style='text-align: center; margin: 1rem 0;'>
-            {st.session_state.current_intake}ml / {st.session_state.daily_goal}ml
-        </h2>
-        """, unsafe_allow_html=True)
-        
-        st.info(get_age_specific_message('encouragement'))
+    st.markdown(f"""
+    <h2 style='text-align: center; margin: 1rem 0;'>
+        {st.session_state.current_intake}ml / {st.session_state.daily_goal}ml
+    </h2>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        bottle_progress = create_bottle_progress_bar(progress_pct)
-        st.markdown(bottle_progress, unsafe_allow_html=True)
+    st.info(get_age_specific_message('encouragement'))
     
     st.divider()
     
@@ -1064,16 +970,20 @@ def main():
         else:
             onboarding_screen()
     else:
-        # Sidebar navigation using selectbox instead of buttons
+        # Sidebar navigation
         with st.sidebar:
-            st.markdown("### 💧 WaterBuddy")
+            # Clickable WaterBuddy title to go home
+            if st.button("💧 WaterBuddy", key="home_button", use_container_width=True):
+                st.session_state.current_screen = 'dashboard'
+                st.rerun()
+            
             st.caption(f"Hello, {st.session_state.name}!")
             
             st.divider()
             
             # Navigation using selectbox (more reliable in Streamlit)
             screen_options = {
-                'Dashboard': 'dashboard',
+                'Home': 'dashboard',
                 'Profile': 'profile',
                 'Analytics': 'charts',
                 'Leaderboard': 'leaderboard',
@@ -1098,7 +1008,7 @@ def main():
             
             st.divider()
             
-            st.markdown("### Today")
+            st.markdown("### Today's Stats")
             st.metric("Intake", f"{st.session_state.current_intake}ml")
             st.metric("Goal", f"{st.session_state.daily_goal}ml")
             progress = (st.session_state.current_intake / st.session_state.daily_goal) * 100
