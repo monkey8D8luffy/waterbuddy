@@ -1,6 +1,6 @@
 """
 WaterBuddy - Age-Adaptive Hydration Tracking App
-Optimized for Streamlit with working animations
+Fixed navigation and optimized for Streamlit
 """
 
 import streamlit as st
@@ -94,15 +94,14 @@ def init_session_state():
         'language': 'English',
         'units': 'metric',
         
-        # UI state
-        'screen': 'splash',
+        # UI state - IMPORTANT: default screen
+        'current_screen': 'splash',
         'show_onboarding': True,
         'today_date': date.today(),
         
         # Data
         'weekly_data': [],
         'leaderboard_users': [],
-        'show_celebration': False,
         'last_reminder_time': datetime.now(),
     }
     
@@ -113,7 +112,8 @@ def init_session_state():
     # Initialize name-dependent values
     if st.session_state.name:
         st.session_state.show_onboarding = False
-        st.session_state.screen = 'dashboard'
+        if st.session_state.current_screen == 'splash':
+            st.session_state.current_screen = 'dashboard'
     
     # Load or generate data
     if not st.session_state.weekly_data:
@@ -190,8 +190,8 @@ def create_water_drop_image():
     html = f"""
     <div style="text-align: center; padding: 1rem;">
         <div style="
-            width: 120px;
-            height: 140px;
+            width: 100px;
+            height: 120px;
             background: linear-gradient(135deg, {colors['primary']} 0%, {colors['secondary']} 100%);
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
@@ -213,56 +213,94 @@ def create_water_drop_image():
     """
     return html
 
-def create_bottle_svg(percentage: float):
-    """Create optimized bottle visualization for Streamlit"""
+def create_bottle_progress_bar(percentage: float):
+    """Create vertical progress bar in bottle shape"""
     colors = AGE_THEME_COLORS[st.session_state.age_group]
     fill_pct = max(0, min(100, percentage))
     
-    # Calculate water height (0-105 pixels from bottom)
-    water_height = (fill_pct / 100) * 105
-    water_y = 135 - water_height
-    
-    svg = f"""
-    <svg width="200" height="180" viewBox="0 0 100 180" xmlns="http://www.w3.org/2000/svg">
-        <!-- Bottle Shadow -->
-        <ellipse cx="50" cy="172" rx="22" ry="4" fill="rgba(0,0,0,0.1)"/>
-        
-        <!-- Bottle Outline -->
-        <rect x="30" y="30" width="40" height="135" rx="5" fill="rgba(255,255,255,0.9)" 
-              stroke="{colors['primary']}" stroke-width="3"/>
-        
-        <!-- Bottle Neck -->
-        <rect x="42" y="20" width="16" height="15" rx="3" fill="rgba(255,255,255,0.9)" 
-              stroke="{colors['primary']}" stroke-width="3"/>
-        
-        <!-- Bottle Cap -->
-        <rect x="40" y="15" width="20" height="8" rx="4" fill="{colors['secondary']}" 
-              stroke="{colors['primary']}" stroke-width="2"/>
-        
-        <!-- Water Fill -->
-        <rect x="33" y="{water_y}" width="34" height="{water_height}" 
-              fill="{colors['primary']}" opacity="0.7" rx="3"/>
-        
-        <!-- Water Surface Line -->
-        <line x1="33" y1="{water_y}" x2="67" y2="{water_y}" 
-              stroke="{colors['secondary']}" stroke-width="2"/>
-        
-        <!-- Bubbles -->
-        {f'<circle cx="45" cy="{water_y + 20}" r="2" fill="white" opacity="0.6"/>' if fill_pct > 20 else ''}
-        {f'<circle cx="55" cy="{water_y + 30}" r="2.5" fill="white" opacity="0.5"/>' if fill_pct > 30 else ''}
-        {f'<circle cx="50" cy="{water_y + 15}" r="1.5" fill="white" opacity="0.7"/>' if fill_pct > 40 else ''}
-        
-        <!-- Measurement Marks -->
-        <line x1="72" y1="60" x2="75" y2="60" stroke="#999" stroke-width="1"/>
-        <line x1="72" y1="95" x2="75" y2="95" stroke="#999" stroke-width="1"/>
-        <line x1="72" y1="130" x2="75" y2="130" stroke="#999" stroke-width="1"/>
-        
-        <!-- Percentage Text -->
-        <text x="50" y="90" text-anchor="middle" font-size="20" font-weight="bold" 
-              fill="{colors['primary']}">{int(fill_pct)}%</text>
-    </svg>
+    html = f"""
+    <div style="text-align: center; padding: 1rem;">
+        <div style="position: relative; width: 80px; height: 250px; margin: 0 auto;">
+            <!-- Bottle Cap -->
+            <div style="
+                width: 40px;
+                height: 15px;
+                background: {colors['secondary']};
+                border: 2px solid {colors['primary']};
+                border-radius: 8px 8px 0 0;
+                margin: 0 auto;
+                position: absolute;
+                left: 20px;
+                top: 0;
+            "></div>
+            
+            <!-- Bottle Neck -->
+            <div style="
+                width: 30px;
+                height: 25px;
+                background: rgba(255,255,255,0.9);
+                border: 3px solid {colors['primary']};
+                margin: 0 auto;
+                position: absolute;
+                left: 25px;
+                top: 15px;
+            "></div>
+            
+            <!-- Bottle Body (Outline) -->
+            <div style="
+                width: 80px;
+                height: 200px;
+                background: rgba(255,255,255,0.9);
+                border: 3px solid {colors['primary']};
+                border-radius: 8px;
+                position: absolute;
+                top: 40px;
+                left: 0;
+                overflow: hidden;
+            ">
+                <!-- Water Fill (from bottom) -->
+                <div style="
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    width: 100%;
+                    height: {fill_pct}%;
+                    background: linear-gradient(180deg, {colors['primary']} 0%, {colors['secondary']} 100%);
+                    transition: height 0.5s ease;
+                "></div>
+                
+                <!-- Percentage Text -->
+                <div style="
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: {colors['primary']};
+                    z-index: 10;
+                ">{int(fill_pct)}%</div>
+                
+                <!-- Measurement Lines -->
+                <div style="position: absolute; left: 0; top: 25%; width: 10px; height: 2px; background: #999;"></div>
+                <div style="position: absolute; left: 0; top: 50%; width: 10px; height: 2px; background: #999;"></div>
+                <div style="position: absolute; left: 0; top: 75%; width: 10px; height: 2px; background: #999;"></div>
+            </div>
+            
+            <!-- Amount Label -->
+            <div style="
+                position: absolute;
+                bottom: -30px;
+                left: 0;
+                width: 100%;
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+            ">{st.session_state.current_intake}/{st.session_state.daily_goal}ml</div>
+        </div>
+    </div>
     """
-    return svg
+    return html
 
 def add_water_intake(amount: int):
     """Add water intake and check for achievements"""
@@ -467,11 +505,10 @@ def create_progress_gauge(percentage: float):
     colors = AGE_THEME_COLORS[st.session_state.age_group]
     
     fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
+        mode="gauge+number",
         value=percentage,
         domain={'x': [0, 1], 'y': [0, 1]},
         title={'text': "Daily Goal Progress", 'font': {'size': 20}},
-        delta={'reference': 100, 'suffix': '%'},
         number={'suffix': '%'},
         gauge={
             'axis': {'range': [None, 100]},
@@ -514,7 +551,7 @@ def splash_screen():
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         if st.button("Get Started →", key="splash_start", use_container_width=True):
-            st.session_state.screen = 'onboarding'
+            st.session_state.current_screen = 'onboarding'
             st.rerun()
 
 def onboarding_screen():
@@ -555,7 +592,7 @@ def onboarding_screen():
                 st.session_state.name = name
                 st.session_state.daily_goal = daily_goal
                 st.session_state.family_mode = family_mode
-                st.session_state.screen = 'dashboard'
+                st.session_state.current_screen = 'dashboard'
                 st.session_state.show_onboarding = False
                 st.balloons()
                 st.rerun()
@@ -595,9 +632,8 @@ def dashboard_screen():
         st.info(get_age_specific_message('encouragement'))
     
     with col2:
-        bottle_svg = create_bottle_svg(progress_pct)
-        st.markdown(f'<div style="text-align: center;">{bottle_svg}</div>', 
-                   unsafe_allow_html=True)
+        bottle_progress = create_bottle_progress_bar(progress_pct)
+        st.markdown(bottle_progress, unsafe_allow_html=True)
     
     st.divider()
     
@@ -658,7 +694,7 @@ def dashboard_screen():
         """, unsafe_allow_html=True)
 
 def profile_screen():
-    """Enhanced profile screen"""
+    """Profile screen"""
     st.title(f"👤 {st.session_state.name}'s Profile")
     
     # Profile header
@@ -722,26 +758,6 @@ def profile_screen():
     
     st.divider()
     
-    # Insights
-    st.markdown("### 💡 Hydration Insights")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.session_state.intake_history:
-            avg_daily = int(st.session_state.total_intake / days_active)
-            st.metric("Average Daily", f"{avg_daily}ml")
-        else:
-            st.info("Start logging to see insights!")
-    
-    with col2:
-        if st.session_state.intake_history:
-            hours = [e['timestamp'].hour for e in st.session_state.intake_history]
-            if hours:
-                most_active = max(set(hours), key=hours.count)
-                st.metric("Most Active Hour", f"{most_active:02d}:00")
-    
-    st.divider()
-    
     # Badges
     st.markdown("### 🏆 Badges")
     tab1, tab2 = st.tabs(["Earned", "All Badges"])
@@ -776,37 +792,6 @@ def profile_screen():
                     {'<div style="color: green;">✓ Earned</div>' if earned else '<div style="color: gray;">🔒 Locked</div>'}
                 </div>
                 """, unsafe_allow_html=True)
-    
-    st.divider()
-    
-    # Actions
-    st.markdown("### Quick Actions")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📥 Export Data", use_container_width=True):
-            data = {
-                'name': st.session_state.name,
-                'total_intake': st.session_state.total_intake,
-                'streak': st.session_state.streak,
-                'badges': st.session_state.badges
-            }
-            st.download_button(
-                "Download JSON",
-                data=json.dumps(data, indent=2),
-                file_name=f"waterbuddy_{datetime.now().strftime('%Y%m%d')}.json",
-                mime="application/json"
-            )
-    
-    with col2:
-        if st.button("⚙️ Settings", use_container_width=True):
-            st.session_state.screen = 'settings'
-            st.rerun()
-    
-    with col3:
-        if st.button("📊 Analytics", use_container_width=True):
-            st.session_state.screen = 'charts'
-            st.rerun()
 
 def charts_screen():
     """Analytics screen"""
@@ -844,7 +829,7 @@ def charts_screen():
         st.info("No activity yet. Start logging!")
 
 def settings_screen():
-    """Enhanced settings screen"""
+    """Settings screen"""
     st.title("⚙️ Settings")
     
     tab1, tab2, tab3, tab4 = st.tabs(["Profile", "Notifications", "Appearance", "Advanced"])
@@ -888,19 +873,17 @@ def settings_screen():
         
         notif_enabled = st.checkbox("Enable Notifications", 
                                     value=st.session_state.notifications_enabled)
+        st.session_state.notifications_enabled = notif_enabled
         
         if notif_enabled:
             freq = st.slider("Reminder Frequency (minutes)", 15, 180, 
                            st.session_state.notification_frequency, 15)
+            st.session_state.notification_frequency = freq
             
             tone = st.selectbox("Notification Tone",
                               ['gentle', 'cheerful', 'motivational', 'silent'],
                               index=['gentle', 'cheerful', 'motivational', 'silent'].index(st.session_state.notification_tone))
-            
-            st.session_state.notification_frequency = freq
             st.session_state.notification_tone = tone
-        
-        st.session_state.notifications_enabled = notif_enabled
         
         sound = st.checkbox("Enable Sounds", value=st.session_state.sound_enabled)
         st.session_state.sound_enabled = sound
@@ -915,15 +898,6 @@ def settings_screen():
                                    value=st.session_state.high_contrast)
         st.session_state.high_contrast = high_contrast
         
-        language = st.selectbox("Language", 
-                              ['English', 'Spanish', 'French', 'German', 'Japanese'],
-                              index=['English', 'Spanish', 'French', 'German', 'Japanese'].index(st.session_state.language))
-        st.session_state.language = language
-        
-        units = st.radio("Units", ['metric', 'imperial'], 
-                        index=['metric', 'imperial'].index(st.session_state.units))
-        st.session_state.units = units
-        
         if st.button("Apply Theme", use_container_width=True):
             st.success("✅ Theme updated!")
             st.rerun()
@@ -936,49 +910,37 @@ def settings_screen():
         st.session_state.family_mode = family
         
         st.divider()
-        
         st.markdown("### Data Management")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("📥 Export All Data", use_container_width=True):
+            if st.button("📥 Export Data", use_container_width=True):
                 data = {
                     'name': st.session_state.name,
-                    'age_group': st.session_state.age_group,
-                    'daily_goal': st.session_state.daily_goal,
                     'total_intake': st.session_state.total_intake,
                     'streak': st.session_state.streak,
-                    'badges': st.session_state.badges,
-                    'intake_history': [
-                        {
-                            'timestamp': e['timestamp'].isoformat(),
-                            'amount': e['amount'],
-                            'date': e['date'].isoformat()
-                        }
-                        for e in st.session_state.intake_history
-                    ]
+                    'badges': st.session_state.badges
                 }
                 st.download_button(
-                    "Download Complete Data",
+                    "Download JSON",
                     data=json.dumps(data, indent=2),
-                    file_name=f"waterbuddy_complete_{datetime.now().strftime('%Y%m%d')}.json",
+                    file_name=f"waterbuddy_{datetime.now().strftime('%Y%m%d')}.json",
                     mime="application/json"
                 )
         
         with col2:
-            if st.button("🔄 Reset All Data", use_container_width=True, type="secondary"):
+            if st.button("🔄 Reset Data", use_container_width=True, type="secondary"):
                 if st.checkbox("⚠️ Confirm reset"):
                     for key in list(st.session_state.keys()):
                         del st.session_state[key]
-                    st.success("Data reset! Reloading...")
+                    st.success("Data reset!")
                     st.rerun()
 
 def summary_screen():
-    """Fixed summary screen"""
+    """Summary screen"""
     st.title("📋 Today's Summary")
     
-    # Display appropriate emoji
     goal_met = st.session_state.current_intake >= st.session_state.daily_goal
     emoji = '🎉' if goal_met else '😊'
     st.markdown(f"<div style='text-align: center; font-size: 5rem;'>{emoji}</div>", 
@@ -990,11 +952,10 @@ def summary_screen():
     else:
         st.info("### 😊 Great progress today!")
         remaining = st.session_state.daily_goal - st.session_state.current_intake
-        st.write(f"You're doing well! Just {remaining}ml more to reach your goal!")
+        st.write(f"Just {remaining}ml more to reach your goal!")
     
     st.divider()
     
-    # Today's stats
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -1014,27 +975,17 @@ def summary_screen():
     
     st.divider()
     
-    # Progress visualization
-    st.markdown("### 📊 Progress Visualization")
+    st.markdown("### 📊 Progress")
     progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
     fig = create_progress_gauge(progress_pct)
     st.plotly_chart(fig, use_container_width=True)
-    
-    # Recommendations
-    st.markdown("### 💡 Recommendations")
-    if progress_pct < 50:
-        st.info("💧 Try to drink more water throughout the day. Set reminders!")
-    elif progress_pct < 100:
-        st.success("🎯 You're on track! Keep going to reach your goal!")
-    else:
-        st.success("🌟 Excellent hydration! You've exceeded your goal!")
 
 def leaderboard_screen():
     """Leaderboard screen"""
     st.title("🏆 Leaderboard")
     
     if not st.session_state.family_mode:
-        st.info("Enable Family/Group mode in Settings to view the leaderboard!")
+        st.info("Enable Family/Group mode in Settings!")
         return
     
     st.markdown("### Today's Standings")
@@ -1051,9 +1002,7 @@ def leaderboard_screen():
         with col1:
             st.markdown(f"### {position}")
         with col2:
-            is_you = user.get('name') in [st.session_state.name, 'You']
-            name = f"**{user.get('name', 'Unknown')}**" if is_you else user.get('name', 'Unknown')
-            st.markdown(f"### {name}")
+            st.markdown(f"### {user.get('name', 'Unknown')}")
         with col3:
             st.metric("Intake", f"{user.get('intake', 0)}ml")
         with col4:
@@ -1063,38 +1012,13 @@ def leaderboard_screen():
 
 def reminders_screen():
     """Reminders screen"""
-    st.title("⏰ Smart Reminders")
-    
-    st.markdown("### Reminder Settings")
+    st.title("⏰ Reminders")
     
     if st.session_state.notifications_enabled:
-        time_since = (datetime.now() - st.session_state.last_reminder_time).total_seconds() / 60
-        
-        if time_since >= st.session_state.notification_frequency:
-            st.warning("💧 Time for your next glass of water!")
-            st.session_state.last_reminder_time = datetime.now()
-    
-    # Schedule
-    st.markdown("### Today's Reminder Schedule")
-    
-    start, end = 7, 22
-    freq_hours = st.session_state.notification_frequency / 60
-    
-    times = []
-    current = start
-    while current < end:
-        times.append(f"{int(current):02d}:{int((current % 1) * 60):02d}")
-        current += freq_hours
-    
-    cols = st.columns(min(len(times), 5))
-    for idx, time_str in enumerate(times):
-        with cols[idx % 5]:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <div style='font-size: 2rem;'>⏰</div>
-                <div style='font-weight: 700;'>{time_str}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        st.info("💧 Reminders are enabled!")
+        st.write(f"Frequency: Every {st.session_state.notification_frequency} minutes")
+    else:
+        st.warning("Reminders are disabled. Enable in Settings!")
 
 def help_screen():
     """Help screen"""
@@ -1103,43 +1027,25 @@ def help_screen():
     st.markdown("""
     ### Quick Start Guide
     
-    **1. Log Water Intake** 🥤
-    - Use dashboard buttons for quick logging
-    - Choose from Glass (250ml), Can (330ml), Bottle (500ml), or Large (750ml)
-    - Or enter a custom amount
+    **1. Log Water** 🥤
+    - Use buttons to log drinks quickly
     
     **2. Track Progress** 📊
-    - Watch your bottle fill up
-    - See real-time percentage
-    - Monitor your daily goal
+    - Watch your progress bar fill up
     
     **3. Build Streaks** 🔥
-    - Log water daily to maintain streak
-    - Reach daily goal to keep streak alive
+    - Maintain daily goals
     
     **4. Earn Badges** 🏆
     - Complete challenges
-    - Unlock achievements
-    - Collect all badges
-    
-    **5. View Analytics** 📈
-    - Check weekly progress
-    - See your patterns
-    - Optimize hydration schedule
     
     ### FAQ
     
-    **Q: Is my data safe?**  
-    A: Yes! All data is stored locally in your browser session.
-    
-    **Q: Can I export my data?**  
-    A: Yes! Go to Profile → Export Data or Settings → Advanced.
+    **Q: Is data safe?**  
+    A: Yes! Stored locally in your browser.
     
     **Q: How do streaks work?**  
-    A: Reach your daily goal each day to maintain your streak.
-    
-    **Q: Can I customize my goal?**  
-    A: Yes! Go to Settings → Profile to adjust your daily goal.
+    A: Reach your goal daily to maintain streak.
     """)
 
 # ============================================================================
@@ -1147,39 +1053,48 @@ def help_screen():
 # ============================================================================
 
 def main():
-    """Main application entry point"""
+    """Main application"""
     
     init_session_state()
     apply_custom_css()
     
     if st.session_state.show_onboarding:
-        if st.session_state.screen == 'splash':
+        if st.session_state.current_screen == 'splash':
             splash_screen()
         else:
             onboarding_screen()
     else:
-        # Sidebar
+        # Sidebar navigation using selectbox instead of buttons
         with st.sidebar:
             st.markdown("### 💧 WaterBuddy")
             st.caption(f"Hello, {st.session_state.name}!")
             
             st.divider()
             
-            menu_items = {
-                'dashboard': '🏠 Dashboard',
-                'profile': '👤 Profile',
-                'charts': '📊 Analytics',
-                'leaderboard': '🏆 Leaderboard',
-                'reminders': '⏰ Reminders',
-                'summary': '📋 Summary',
-                'help': '❓ Help',
-                'settings': '⚙️ Settings'
+            # Navigation using selectbox (more reliable in Streamlit)
+            screen_options = {
+                'Dashboard': 'dashboard',
+                'Profile': 'profile',
+                'Analytics': 'charts',
+                'Leaderboard': 'leaderboard',
+                'Reminders': 'reminders',
+                'Summary': 'summary',
+                'Help': 'help',
+                'Settings': 'settings'
             }
             
-            for key, label in menu_items.items():
-                if st.button(label, key=f"nav_{key}", use_container_width=True):
-                    st.session_state.screen = key
-                    st.rerun()
+            # Find current screen index
+            current_index = list(screen_options.values()).index(st.session_state.current_screen) if st.session_state.current_screen in screen_options.values() else 0
+            
+            selected_screen = st.selectbox(
+                "Navigate to:",
+                options=list(screen_options.keys()),
+                index=current_index,
+                key="nav_selector"
+            )
+            
+            # Update current screen
+            st.session_state.current_screen = screen_options[selected_screen]
             
             st.divider()
             
@@ -1190,23 +1105,25 @@ def main():
             st.progress(min(progress / 100, 1.0))
             
             st.divider()
-            st.caption("🔒 Privacy-first • Your data stays local")
+            st.caption("🔒 Your data stays local")
         
-        # Main content
-        screens = {
-            'dashboard': dashboard_screen,
-            'profile': profile_screen,
-            'charts': charts_screen,
-            'leaderboard': leaderboard_screen,
-            'reminders': reminders_screen,
-            'summary': summary_screen,
-            'help': help_screen,
-            'settings': settings_screen
-        }
-        
-        current_screen = st.session_state.screen
-        if current_screen in screens:
-            screens[current_screen]()
+        # Main content based on current screen
+        if st.session_state.current_screen == 'dashboard':
+            dashboard_screen()
+        elif st.session_state.current_screen == 'profile':
+            profile_screen()
+        elif st.session_state.current_screen == 'charts':
+            charts_screen()
+        elif st.session_state.current_screen == 'leaderboard':
+            leaderboard_screen()
+        elif st.session_state.current_screen == 'reminders':
+            reminders_screen()
+        elif st.session_state.current_screen == 'summary':
+            summary_screen()
+        elif st.session_state.current_screen == 'help':
+            help_screen()
+        elif st.session_state.current_screen == 'settings':
+            settings_screen()
 
 if __name__ == "__main__":
     main()
