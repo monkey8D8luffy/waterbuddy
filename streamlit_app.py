@@ -231,10 +231,10 @@ def create_bottle_visualization(percentage: float, size: str = 'md', show_percen
     
     # Size configurations
     sizes = {
-        'sm': {'width': '80px', 'height': '120px'},
-        'md': {'width': '120px', 'height': '180px'},
-        'lg': {'width': '160px', 'height': '240px'},
-        'xl': {'width': '200px', 'height': '300px'}
+        'sm': {'width': 80, 'height': 120},
+        'md': {'width': 120, 'height': 180},
+        'lg': {'width': 160, 'height': 240},
+        'xl': {'width': 200, 'height': 300}
     }
     
     size_config = sizes.get(size, sizes['md'])
@@ -250,96 +250,68 @@ def create_bottle_visualization(percentage: float, size: str = 'md', show_percen
     
     water_color = water_colors.get(age_group, water_colors['adult'])
     
-    # Progress indicators for children
-    progress_dots = ""
+    # Filters based on age group
+    filters = {
+        'children': 'brightness(1.05)',
+        'teen': 'brightness(1.1) contrast(1.1) saturate(1.2)',
+        'adult': 'brightness(1.05)',
+        'senior': 'brightness(1.1) contrast(1.2)'
+    }
+    filter_style = filters.get(age_group, 'brightness(1.05)')
+    
+    # Font size based on age group
+    font_sizes = {'senior': 28, 'children': 24, 'teen': 22, 'adult': 22}
+    font_size = font_sizes.get(age_group, 22)
+    
+    # Text color and shadow
+    text_color = '#ffffff' if fill_height > 50 else '#123743'
+    text_shadow = '0 2px 4px rgba(0,0,0,0.3), 0 0 8px rgba(255,255,255,0.5)' if fill_height > 50 else '0 2px 4px rgba(255,255,255,0.8)'
+    
+    # Build shimmer HTML
+    shimmer_html = ''
+    if fill_height > 20:
+        shimmer_html = '<div style="position: absolute; inset: 0; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%);"></div>'
+    
+    # Build percentage HTML
+    percentage_html = ''
+    if show_percentage:
+        percentage_html = f'<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; font-size: {font_size}px; font-weight: 700; color: {text_color}; text-shadow: {text_shadow};">{int(fill_height)}%</div>'
+    
+    # Build border HTML for seniors
+    border_html = ''
+    if age_group == 'senior':
+        border_html = '<div style="position: absolute; inset: 0; border: 3px solid rgba(18, 55, 67, 0.8); border-radius: 16px; pointer-events: none; z-index: 40; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);"></div>'
+    
+    # Build sparkle HTML
+    sparkle_html = ''
+    if fill_height >= 100:
+        sparkle_html = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; z-index: 50;">✨</div>'
+    
+    # Progress dots for children
+    progress_dots_html = ''
     if age_group == 'children':
         milestones = [0, 25, 50, 75, 100]
         dots = []
         for milestone in milestones:
             dot_color = '#f472b6' if fill_height >= milestone else '#e5e7eb'
             dots.append(f'<div style="width: 10px; height: 10px; border-radius: 50%; background: {dot_color}; display: inline-block; margin: 0 2px;"></div>')
-        progress_dots = f'<div style="text-align: center; margin-top: 8px;">{"".join(dots)}</div>'
+        progress_dots_html = f'<div style="text-align: center; margin-top: 8px;">{"".join(dots)}</div>'
     
-    # Percentage text color based on fill
-    text_color = '#ffffff' if fill_height > 50 else '#123743'
-    text_shadow = '0 2px 4px rgba(0,0,0,0.3), 0 0 8px rgba(255,255,255,0.5)' if fill_height > 50 else '0 2px 4px rgba(255,255,255,0.8)'
-    
-    html = f"""
+    html = f'''
     <div style="text-align: center; padding: 0.5rem;">
-        <div style="
-            position: relative;
-            width: {size_config['width']};
-            height: {size_config['height']};
-            margin: 0 auto;
-            overflow: hidden;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        ">
-            <!-- Bottle Image -->
-            <img src="{bottle_url}" 
-                 alt="{age_group} bottle"
-                 style="
-                     width: 100%;
-                     height: 100%;
-                     object-fit: cover;
-                     position: absolute;
-                     top: 0;
-                     left: 0;
-                     filter: {'brightness(1.1) contrast(1.1) saturate(1.2)' if age_group == 'teen' else 'brightness(1.1) contrast(1.2)' if age_group == 'senior' else 'brightness(1.05)'};
-                 "
-            />
-            
-            <!-- Water Fill Overlay -->
-            <div style="
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                height: {fill_height}%;
-                background: linear-gradient(to top, {water_color}, {colors['primary']}44);
-                transition: height 0.8s ease-out;
-                z-index: 10;
-            ">
-                <!-- Water Surface Wave -->
-                <div style="
-                    position: absolute;
-                    top: -4px;
-                    left: 0;
-                    width: 100%;
-                    height: 8px;
-                    background: radial-gradient(ellipse at center top, rgba(255,255,255,0.4), transparent);
-                "></div>
-                
-                <!-- Shimmer Effect -->
-                {'<div style="position: absolute; inset: 0; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%); animation: shimmer 3s linear infinite;"></div>' if fill_height > 20 else ''}
+        <div style="position: relative; width: {size_config['width']}px; height: {size_config['height']}px; margin: 0 auto; overflow: hidden; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: #f0f9ff;">
+            <img src="{bottle_url}" alt="Water bottle" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; filter: {filter_style};" />
+            <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: {fill_height}%; background: linear-gradient(to top, {water_color}, {colors['primary']}44); z-index: 10;">
+                <div style="position: absolute; top: -4px; left: 0; width: 100%; height: 8px; background: radial-gradient(ellipse at center top, rgba(255,255,255,0.4), transparent);"></div>
+                {shimmer_html}
             </div>
-            
-            <!-- Percentage Text -->
-            {'<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; font-size: ' + ('28px' if age_group == 'senior' else '24px' if age_group == 'children' else '22px') + '; font-weight: 700; color: ' + text_color + '; text-shadow: ' + text_shadow + ';">' + str(int(fill_height)) + '%</div>' if show_percentage else ''}
-            
-            <!-- High Contrast Border for Seniors -->
-            {'<div style="position: absolute; inset: 0; border: 3px solid rgba(18, 55, 67, 0.8); border-radius: 16px; pointer-events: none; z-index: 40; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);"></div>' if age_group == 'senior' else ''}
-            
-            <!-- Completion Sparkle -->
-            {'<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; z-index: 50; animation: sparkle 1.5s ease-out;">✨</div>' if fill_height >= 100 else ''}
+            {percentage_html}
+            {border_html}
+            {sparkle_html}
         </div>
-        
-        {progress_dots}
+        {progress_dots_html}
     </div>
-    
-    <style>
-        @keyframes shimmer {{
-            0% {{ background-position: 0% 0%; }}
-            100% {{ background-position: 100% 100%; }}
-        }}
-        
-        @keyframes sparkle {{
-            0% {{ transform: translate(-50%, -50%) scale(0); opacity: 0; }}
-            50% {{ transform: translate(-50%, -50%) scale(1.2); opacity: 1; }}
-            100% {{ transform: translate(-50%, -50%) scale(1); opacity: 0; }}
-        }}
-    </style>
-    """
+    '''
     return html
 
 
