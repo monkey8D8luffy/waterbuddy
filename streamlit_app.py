@@ -645,29 +645,40 @@ def dashboard_screen():
     """Main dashboard"""
     check_streak()
     
-    # Header
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.title(get_age_specific_message('greeting'))
-        st.caption(f"👋 {st.session_state.name} • {datetime.now().strftime('%A, %B %d')}")
-    
-    with col2:
-        # Display bottle visualization instead of water drop
-        progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
-        bottle_html = create_bottle_visualization(progress_pct, size='md', show_percentage=True)
-        st.markdown(bottle_html, unsafe_allow_html=True)
+    # Header with greeting
+    st.title(get_age_specific_message('greeting'))
+    st.caption(f"👋 {st.session_state.name} • {datetime.now().strftime('%A, %B %d')}")
     
     st.divider()
     
-    # Progress section
+    # Progress section with prominent bottle
     st.markdown("### 💧 Today's Progress")
-    st.progress(min(progress_pct / 100, 1.0))
     
-    st.markdown(f"""
-    <h2 style='text-align: center; margin: 1rem 0;'>
-        {st.session_state.current_intake}ml / {st.session_state.daily_goal}ml
-    </h2>
-    """, unsafe_allow_html=True)
+    # Create columns for bottle and stats
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
+    
+    with col1:
+        st.markdown("")  # spacing
+    
+    with col2:
+        # Large centered bottle visualization
+        bottle_html = create_bottle_visualization(progress_pct, size='lg', show_percentage=True)
+        st.markdown(bottle_html, unsafe_allow_html=True)
+        
+        # Progress bar below bottle
+        st.progress(min(progress_pct / 100, 1.0))
+        
+        # Intake numbers
+        st.markdown(f"""
+        <h2 style='text-align: center; margin: 0.5rem 0;'>
+            {st.session_state.current_intake}ml / {st.session_state.daily_goal}ml
+        </h2>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("")  # spacing
     
     st.info(get_age_specific_message('encouragement'))
     
