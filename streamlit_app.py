@@ -213,6 +213,135 @@ def create_water_drop_image():
     """
     return html
 
+def get_bottle_image_url(age_group: str) -> str:
+    """Get bottle image URL based on age group theme"""
+    bottle_images = {
+        'children': 'https://images.unsplash.com/photo-1706794830970-91db281bb4b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
+        'teen': 'https://images.unsplash.com/photo-1668199902717-df9f1f5e9104?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
+        'adult': 'https://images.unsplash.com/photo-1624392294437-8fc9f876f4d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400',
+        'senior': 'https://images.unsplash.com/photo-1687472238829-59855ebda1f8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400'
+    }
+    return bottle_images.get(age_group, bottle_images['adult'])
+
+def create_bottle_visualization(percentage: float, size: str = 'md', show_percentage: bool = True):
+    """Create bottle visualization with water fill effect based on age group"""
+    colors = AGE_THEME_COLORS[st.session_state.age_group]
+    age_group = st.session_state.age_group
+    bottle_url = get_bottle_image_url(age_group)
+    
+    # Size configurations
+    sizes = {
+        'sm': {'width': '80px', 'height': '120px'},
+        'md': {'width': '120px', 'height': '180px'},
+        'lg': {'width': '160px', 'height': '240px'},
+        'xl': {'width': '200px', 'height': '300px'}
+    }
+    
+    size_config = sizes.get(size, sizes['md'])
+    fill_height = min(max(percentage, 0), 100)
+    
+    # Water colors based on age group
+    water_colors = {
+        'children': 'rgba(255, 107, 157, 0.7)',
+        'teen': 'rgba(124, 58, 237, 0.7)',
+        'adult': 'rgba(112, 214, 255, 0.7)',
+        'senior': 'rgba(30, 155, 199, 0.8)'
+    }
+    
+    water_color = water_colors.get(age_group, water_colors['adult'])
+    
+    # Progress indicators for children
+    progress_dots = ""
+    if age_group == 'children':
+        milestones = [0, 25, 50, 75, 100]
+        dots = []
+        for milestone in milestones:
+            dot_color = '#f472b6' if fill_height >= milestone else '#e5e7eb'
+            dots.append(f'<div style="width: 10px; height: 10px; border-radius: 50%; background: {dot_color}; display: inline-block; margin: 0 2px;"></div>')
+        progress_dots = f'<div style="text-align: center; margin-top: 8px;">{"".join(dots)}</div>'
+    
+    # Percentage text color based on fill
+    text_color = '#ffffff' if fill_height > 50 else '#123743'
+    text_shadow = '0 2px 4px rgba(0,0,0,0.3), 0 0 8px rgba(255,255,255,0.5)' if fill_height > 50 else '0 2px 4px rgba(255,255,255,0.8)'
+    
+    html = f"""
+    <div style="text-align: center; padding: 0.5rem;">
+        <div style="
+            position: relative;
+            width: {size_config['width']};
+            height: {size_config['height']};
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        ">
+            <!-- Bottle Image -->
+            <img src="{bottle_url}" 
+                 alt="{age_group} bottle"
+                 style="
+                     width: 100%;
+                     height: 100%;
+                     object-fit: cover;
+                     position: absolute;
+                     top: 0;
+                     left: 0;
+                     filter: {'brightness(1.1) contrast(1.1) saturate(1.2)' if age_group == 'teen' else 'brightness(1.1) contrast(1.2)' if age_group == 'senior' else 'brightness(1.05)'};
+                 "
+            />
+            
+            <!-- Water Fill Overlay -->
+            <div style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: {fill_height}%;
+                background: linear-gradient(to top, {water_color}, {colors['primary']}44);
+                transition: height 0.8s ease-out;
+                z-index: 10;
+            ">
+                <!-- Water Surface Wave -->
+                <div style="
+                    position: absolute;
+                    top: -4px;
+                    left: 0;
+                    width: 100%;
+                    height: 8px;
+                    background: radial-gradient(ellipse at center top, rgba(255,255,255,0.4), transparent);
+                "></div>
+                
+                <!-- Shimmer Effect -->
+                {'<div style="position: absolute; inset: 0; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%); animation: shimmer 3s linear infinite;"></div>' if fill_height > 20 else ''}
+            </div>
+            
+            <!-- Percentage Text -->
+            {'<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; font-size: ' + ('28px' if age_group == 'senior' else '24px' if age_group == 'children' else '22px') + '; font-weight: 700; color: ' + text_color + '; text-shadow: ' + text_shadow + ';">' + str(int(fill_height)) + '%</div>' if show_percentage else ''}
+            
+            <!-- High Contrast Border for Seniors -->
+            {'<div style="position: absolute; inset: 0; border: 3px solid rgba(18, 55, 67, 0.8); border-radius: 16px; pointer-events: none; z-index: 40; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);"></div>' if age_group == 'senior' else ''}
+            
+            <!-- Completion Sparkle -->
+            {'<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; z-index: 50; animation: sparkle 1.5s ease-out;">✨</div>' if fill_height >= 100 else ''}
+        </div>
+        
+        {progress_dots}
+    </div>
+    
+    <style>
+        @keyframes shimmer {{
+            0% {{ background-position: 0% 0%; }}
+            100% {{ background-position: 100% 100%; }}
+        }}
+        
+        @keyframes sparkle {{
+            0% {{ transform: translate(-50%, -50%) scale(0); opacity: 0; }}
+            50% {{ transform: translate(-50%, -50%) scale(1.2); opacity: 1; }}
+            100% {{ transform: translate(-50%, -50%) scale(1); opacity: 0; }}
+        }}
+    </style>
+    """
+    return html
+
 
 
 def add_water_intake(amount: int):
@@ -523,14 +652,15 @@ def dashboard_screen():
         st.caption(f"👋 {st.session_state.name} • {datetime.now().strftime('%A, %B %d')}")
     
     with col2:
-        drop_html = create_water_drop_image()
-        st.markdown(drop_html, unsafe_allow_html=True)
+        # Display bottle visualization instead of water drop
+        progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
+        bottle_html = create_bottle_visualization(progress_pct, size='md', show_percentage=True)
+        st.markdown(bottle_html, unsafe_allow_html=True)
     
     st.divider()
     
     # Progress section
     st.markdown("### 💧 Today's Progress")
-    progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
     st.progress(min(progress_pct / 100, 1.0))
     
     st.markdown(f"""
@@ -607,21 +737,10 @@ def profile_screen():
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col1:
-        # Static droplet image
-        colors = AGE_THEME_COLORS[st.session_state.age_group]
-        st.markdown(f"""
-        <div style="text-align: center;">
-            <div style="
-                width: 100px;
-                height: 120px;
-                background: linear-gradient(135deg, {colors['primary']}, {colors['secondary']});
-                border-radius: 50% 50% 50% 0;
-                transform: rotate(-45deg);
-                margin: 10px auto;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            "></div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Show bottle with current progress
+        progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
+        bottle_html = create_bottle_visualization(progress_pct, size='lg', show_percentage=False)
+        st.markdown(bottle_html, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"### {st.session_state.name}")
@@ -848,9 +967,15 @@ def summary_screen():
     st.title("📋 Today's Summary")
     
     goal_met = st.session_state.current_intake >= st.session_state.daily_goal
-    emoji = '🎉' if goal_met else '😊'
-    st.markdown(f"<div style='text-align: center; font-size: 5rem;'>{emoji}</div>", 
-               unsafe_allow_html=True)
+    
+    # Show bottle visualization
+    col_left, col_center, col_right = st.columns([1, 2, 1])
+    with col_center:
+        progress_pct = (st.session_state.current_intake / st.session_state.daily_goal) * 100
+        bottle_html = create_bottle_visualization(progress_pct, size='xl', show_percentage=True)
+        st.markdown(bottle_html, unsafe_allow_html=True)
+    
+    st.markdown("")  # spacing
     
     if goal_met:
         st.success("### 🎯 Fantastic work today!")
@@ -1009,9 +1134,14 @@ def main():
             st.divider()
             
             st.markdown("### Today's Stats")
+            
+            # Small bottle visualization in sidebar
+            progress = (st.session_state.current_intake / st.session_state.daily_goal) * 100
+            bottle_sidebar = create_bottle_visualization(progress, size='sm', show_percentage=True)
+            st.markdown(bottle_sidebar, unsafe_allow_html=True)
+            
             st.metric("Intake", f"{st.session_state.current_intake}ml")
             st.metric("Goal", f"{st.session_state.daily_goal}ml")
-            progress = (st.session_state.current_intake / st.session_state.daily_goal) * 100
             st.progress(min(progress / 100, 1.0))
             
             st.divider()
