@@ -220,63 +220,49 @@ def get_mascot_expression() -> str:
         return MASCOT_EXPRESSIONS['neutral']
 
 def create_mascot_svg(expression: str = 'smile', size: str = 'medium'):
-    """Create animated SVG mascot"""
+    """Create animated emoji mascot (replaced SVG to fix rendering issues)"""
     
     age_colors = AGE_THEME_COLORS[st.session_state.age_group]
     
-    # Size mapping
-    sizes = {
-        'small': '80px',
-        'medium': '120px',
-        'large': '180px'
-    }
-    svg_size = sizes.get(size, '120px')
-    
-    # Eye expressions
-    eyes = {
-        'neutral': '<circle cx="45" cy="45" r="3" fill="#123743"/><circle cx="65" cy="45" r="3" fill="#123743"/>',
-        'smile': '<circle cx="45" cy="45" r="4" fill="#123743"/><circle cx="65" cy="45" r="4" fill="#123743"/><path d="M40 55 Q55 65 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
-        'cheer': '<circle cx="45" cy="45" r="4" fill="#123743"/><circle cx="65" cy="45" r="4" fill="#123743"/><path d="M40 55 Q55 68 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
-        'excited': '<circle cx="45" cy="45" r="4" fill="#123743"/><circle cx="65" cy="45" r="4" fill="#123743"/><path d="M40 55 Q55 65 70 55" stroke="#123743" stroke-width="3" fill="none" stroke-linecap="round"/>',
-        'sleepy': '<path d="M40 45 L50 45" stroke="#123743" stroke-width="3" stroke-linecap="round"/><path d="M60 45 L70 45" stroke="#123743" stroke-width="3" stroke-linecap="round"/>',
-        'wave': '<circle cx="45" cy="45" r="3" fill="#123743"/><circle cx="65" cy="45" r="3" fill="#123743"/><circle cx="55" cy="55" r="2" fill="' + age_colors['accent'] + '"/>'
+    # Use emoji-based mascot instead of SVG to avoid rendering issues
+    mascot_emojis = {
+        'neutral': '💧',
+        'smile': '😊',
+        'cheer': '🎉',
+        'excited': '🌟',
+        'sleepy': '😴',
+        'wave': '👋'
     }
     
-    eye_svg = eyes.get(expression, eyes['neutral'])
+    emoji = mascot_emojis.get(expression, '💧')
     
-    svg = f"""
-    <svg viewBox="0 0 110 140" style="width: {svg_size}; height: {svg_size}; display: inline-block;">
-        <defs>
-            <linearGradient id="mascotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:{age_colors['primary']};stop-opacity:1" />
-                <stop offset="100%" style="stop-color:{age_colors['secondary']};stop-opacity:0.8" />
-            </linearGradient>
-        </defs>
-        
-        <!-- Main water droplet body -->
-        <path d="M55 25 C35 45, 25 65, 25 85 C25 100, 38 115, 55 115 C72 115, 85 100, 85 85 C85 65, 75 45, 55 25 Z"
-              fill="url(#mascotGradient)" stroke="{age_colors['primary']}" stroke-width="2">
-            <animateTransform attributeName="transform" type="translate" 
-                              values="0,0; 0,-5; 0,0" dur="2s" repeatCount="indefinite"/>
-        </path>
-        
-        <!-- Highlight -->
-        <ellipse cx="48" cy="55" rx="8" ry="12" fill="#FFFFFF" opacity="0.3"/>
-        
-        <!-- Face -->
-        {eye_svg}
-        
-        {"" if expression != 'wave' else f'''
-        <!-- Arms for wave -->
-        <circle cx="25" cy="75" r="6" fill="{age_colors['primary']}" stroke="{age_colors['primary']}" stroke-width="2">
-            <animateTransform attributeName="transform" type="rotate" 
-                              values="0 25 75; 25 25 75; -25 25 75; 0 25 75" dur="1s" repeatCount="indefinite"/>
-        </circle>
-        '''}
-    </svg>
+    # Size mapping for emojis
+    emoji_sizes = {
+        'small': '40px',
+        'medium': '80px',
+        'large': '120px'
+    }
+    emoji_size = emoji_sizes.get(size, '80px')
+    
+    html = f"""
+    <div style="text-align: center; padding: 10px;">
+        <div style="
+            font-size: {emoji_size}; 
+            animation: float 3s ease-in-out infinite;
+            display: inline-block;
+        ">
+            {emoji}
+        </div>
+    </div>
+    <style>
+        @keyframes float {{
+            0%, 100% {{ transform: translateY(0px); }}
+            50% {{ transform: translateY(-10px); }}
+        }}
+    </style>
     """
     
-    return svg
+    return html
 
 def add_water_intake(amount: int):
     """Add water intake and check for achievements"""
@@ -685,16 +671,19 @@ def create_progress_ring(percentage: float):
     
     age_colors = AGE_THEME_COLORS[st.session_state.age_group]
     
+    # Ensure percentage is capped at 100 for display
+    display_pct = min(percentage, 100)
+    
     fig = go.Figure()
     
     fig.add_trace(go.Indicator(
-        mode="gauge+number+delta",
-        value=percentage,
+        mode="gauge+number",
+        value=display_pct,
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Daily Goal", 'font': {'size': 20}},
-        delta={'reference': 100, 'suffix': '%'},
+        title={'text': "Daily Goal Progress", 'font': {'size': 18}},
+        number={'suffix': '%'},
         gauge={
-            'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+            'axis': {'range': [0, 100], 'tickwidth': 1},
             'bar': {'color': age_colors['primary']},
             'bgcolor': "white",
             'borderwidth': 2,
@@ -705,7 +694,7 @@ def create_progress_ring(percentage: float):
                 {'range': [75, 100], 'color': age_colors['accent'] + '33'}
             ],
             'threshold': {
-                'line': {'color': "red", 'width': 4},
+                'line': {'color': age_colors['accent'], 'width': 4},
                 'thickness': 0.75,
                 'value': 100
             }
@@ -819,7 +808,7 @@ def dashboard_screen():
             mascot_expression = 'excited'
         
         mascot_svg = create_mascot_svg(mascot_expression, 'large')
-        st.markdown(f"<div style='text-align: center;'>{mascot_svg}</div>", unsafe_allow_html=True)
+        st.markdown(mascot_svg, unsafe_allow_html=True)
     
     st.divider()
     
