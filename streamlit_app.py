@@ -674,6 +674,15 @@ def create_progress_ring(percentage: float):
     # Ensure percentage is capped at 100 for display
     display_pct = min(percentage, 100)
     
+    # Convert hex to rgba for better compatibility
+    def hex_to_rgba(hex_color, opacity=0.2):
+        """Convert hex color to rgba with opacity"""
+        hex_color = hex_color.lstrip('#')
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return f'rgba({r}, {g}, {b}, {opacity})'
+    
     fig = go.Figure()
     
     fig.add_trace(go.Indicator(
@@ -689,9 +698,9 @@ def create_progress_ring(percentage: float):
             'borderwidth': 2,
             'bordercolor': age_colors['secondary'],
             'steps': [
-                {'range': [0, 50], 'color': age_colors['secondary'] + '33'},
-                {'range': [50, 75], 'color': age_colors['primary'] + '33'},
-                {'range': [75, 100], 'color': age_colors['accent'] + '33'}
+                {'range': [0, 50], 'color': hex_to_rgba(age_colors['secondary'])},
+                {'range': [50, 75], 'color': hex_to_rgba(age_colors['primary'])},
+                {'range': [75, 100], 'color': hex_to_rgba(age_colors['accent'])}
             ],
             'threshold': {
                 'line': {'color': age_colors['accent'], 'width': 4},
